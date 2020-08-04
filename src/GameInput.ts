@@ -246,7 +246,12 @@ implements BABYLON.ICameraInput<T>
 
 
       for(let i = 0; i < listeners.length; ++i){
-        listeners[i]({ camera, frameTime, activeKeyAction });
+        listeners[i]({
+            camera,
+            frameTime,
+            activeKeyAction,
+            _this: this,
+        });
       }
     }
 

@@ -546,45 +546,58 @@ var app = (function () {
     Object.fromEntries:
     https://github.com/microsoft/TypeScript/issues/30933
     */
+    var KEY_ACTION;
+    (function (KEY_ACTION) {
+        KEY_ACTION[KEY_ACTION["LEFT"] = 0] = "LEFT";
+        KEY_ACTION[KEY_ACTION["RIGHT"] = 1] = "RIGHT";
+        KEY_ACTION[KEY_ACTION["FORWARD"] = 2] = "FORWARD";
+        KEY_ACTION[KEY_ACTION["BACK"] = 3] = "BACK";
+        KEY_ACTION[KEY_ACTION["DOWN"] = 4] = "DOWN";
+        KEY_ACTION[KEY_ACTION["UP"] = 5] = "UP";
+    })(KEY_ACTION || (KEY_ACTION = {}));
     var EVENT_TYPE;
     (function (EVENT_TYPE) {
-        EVENT_TYPE[EVENT_TYPE["KEY"] = 0] = "KEY";
-        EVENT_TYPE[EVENT_TYPE["MOUSE"] = 1] = "MOUSE";
+        EVENT_TYPE["KEY"] = "key";
+        EVENT_TYPE["MOUSE"] = "mouse";
     })(EVENT_TYPE || (EVENT_TYPE = {}));
+    /*
+    drop ICameraInput later
+    */
     class GameInput {
         constructor(canvas, processMovement) {
             this.canvas = canvas;
             this.processMovement = processMovement;
+            this.listeners = new Map();
             this.pressed = new Set();
-            this.keyMap = {
-                left: new Set([KEY_CODE.A]),
-                right: new Set([KEY_CODE.D]),
-                forward: new Set([KEY_CODE.W]),
-                back: new Set([KEY_CODE.S]),
-                down: new Set([KEY_CODE.LCTRL]),
-                up: new Set([KEY_CODE.SPACE]),
-            };
+            this.keyMap = new Map([
+                [KEY_ACTION.LEFT, new Set([KEY_CODE.A])],
+                [KEY_ACTION.RIGHT, new Set([KEY_CODE.D])],
+                [KEY_ACTION.FORWARD, new Set([KEY_CODE.W])],
+                [KEY_ACTION.BACK, new Set([KEY_CODE.S])],
+                [KEY_ACTION.DOWN, new Set([KEY_CODE.LCTRL])],
+                [KEY_ACTION.UP, new Set([KEY_CODE.SPACE])],
+            ]);
             this.attached = false;
+            this.detached = false;
             this.sensitivity = 5.0;
             this.onKeyDown = (e) => {
                 let k = toKeyCode(e);
                 if (k)
                     this.pressed.add(k);
-                if (!this.noPreventDefault) {
+                if (this.attached && !this.noPreventDefault) {
                     e.preventDefault();
                 }
             };
             this.onKeyUp = (e) => {
                 let k = toKeyCode(e);
                 this.pressed.delete(k);
-                if (!this.noPreventDefault) {
+                if (this.attached && !this.noPreventDefault) {
                     e.preventDefault();
                 }
             };
             this.onBlur = () => {
                 this.pressed.clear();
             };
-            this.listeners = new Map();
             this.lastCheck = performance.now();
         }
         registerActionManager(scene) {
@@ -627,84 +640,101 @@ var app = (function () {
                 BABYLON.Tools.UnregisterTopRootEvents(this.canvas, [
                     { name: "blur", handler: this.onBlur }
                 ]);
+                this.listeners.clear();
                 this.pressed.clear();
                 this.attached = false;
             }
         }
         add(type, listener) {
+            let _type;
             switch (type) {
-                case "direction":
                 case "dir":
-                    type = "dir";
+                    _type = EVENT_TYPE.MOUSE;
                     break;
-                case "move":
                 case "key":
-                    type = "key";
+                    _type = EVENT_TYPE.KEY;
                     break;
                 default:
-                    throw new Error(`unknown input type: ${type}`);
+                    if (type in EVENT_TYPE) {
+                        _type = type;
+                    }
+                    throw new Error(`unknown input event type ${type}`);
             }
-            let list = this.listeners.get(type);
+            let list = this.listeners.get(_type);
             if (list) {
                 list.push(listener);
             }
             else {
-                this.listeners.set(type, [listener]);
+                this.listeners.set(_type, [listener]);
             }
             return this;
         }
         checkInputs() {
             if (!this.attached)
                 return;
-            // if(!this.pressed.size) return;
-            let begin = performance.now();
             const camera = this.camera;
-            let dir = camera.getForwardRay().direction;
-            let normal_dir = new BABYLON.Vector2(dir.x, dir.z).normalize();
-            let listeners = this.listeners.get("dir");
+            let listeners = this.listeners.get(EVENT_TYPE.MOUSE);
             if (listeners === null || listeners === void 0 ? void 0 : listeners.length) {
                 for (let i = 0; i < listeners.length; ++i) {
-                    listeners[i](dir);
+                    listeners[i]({ camera });
                 }
             }
-            listeners = this.listeners.get("key");
-            if (listeners === null || listeners === void 0 ? void 0 : listeners.length) ;
-            let time_scalar = (performance.now() - this.lastCheck) * 0.001;
-            let z_movement = 0;
-            let y_movement = 0;
-            let x_movement = 0;
-            if ([...this.keyMap.left].some(e => this.pressed.has(e))) {
-                x_movement -= 1;
-            }
-            if ([...this.keyMap.right].some(e => this.pressed.has(e))) {
-                x_movement += 1;
-            }
-            if ([...this.keyMap.forward].some(e => this.pressed.has(e))) {
-                z_movement += 1;
-            }
-            if ([...this.keyMap.back].some(e => this.pressed.has(e))) {
-                z_movement -= 1;
-            }
-            let normal_move = BABYLON.Vector2.FromArray(new Float32Array([x_movement, z_movement])).normalize().multiplyByFloats(time_scalar * this.sensitivity, time_scalar * this.sensitivity);
-            if ([...this.keyMap.up].some(e => this.pressed.has(e))) {
-                y_movement += 1;
-            }
-            if ([...this.keyMap.down].some(e => this.pressed.has(e))) {
-                y_movement -= 1;
-            }
-            /*
-            camera.position.addInPlaceFromFloats(
-              normal_move.y * normal_dir.x + normal_move.x * normal_dir.y,
-              y_movement * time_sens_scalar,
-              normal_move.y * normal_dir.y - normal_move.x * normal_dir.x
-            );
-        
-            */
-            if (this.processMovement) {
-                this.processMovement(new BABYLON.Vector3(normal_move.y * normal_dir.x + normal_move.x * normal_dir.y, y_movement * time_scalar, normal_move.y * normal_dir.y - normal_move.x * normal_dir.x));
+            listeners = this.listeners.get(EVENT_TYPE.KEY);
+            if (listeners === null || listeners === void 0 ? void 0 : listeners.length) {
+                let frameTime = performance.now() - this.lastCheck;
+                let activeKeyAction = new Set();
+                for (let [key_action, key_code_set] of this.keyMap.entries()) {
+                    if ([...key_code_set].some(k => this.pressed.has(k))) {
+                        activeKeyAction.add(key_action);
+                    }
+                }
+                for (let i = 0; i < listeners.length; ++i) {
+                    listeners[i]({
+                        camera,
+                        frameTime,
+                        activeKeyAction,
+                        _this: this,
+                    });
+                }
             }
             this.lastCheck = performance.now();
         }
+    }
+    function processMovementVector({ activeKeyAction, frameTime, camera, _this }) {
+        let dir = camera.getForwardRay().direction;
+        let normal_dir = new BABYLON.Vector2(dir.x, dir.z).normalize();
+        let time_scalar = frameTime * 0.001;
+        let z_movement = 0;
+        let y_movement = 0;
+        let x_movement = 0;
+        if (activeKeyAction.has(KEY_ACTION.LEFT)) {
+            x_movement -= 1;
+        }
+        if (activeKeyAction.has(KEY_ACTION.RIGHT)) {
+            x_movement += 1;
+        }
+        if (activeKeyAction.has(KEY_ACTION.FORWARD)) {
+            z_movement += 1;
+        }
+        if (activeKeyAction.has(KEY_ACTION.BACK)) {
+            z_movement -= 1;
+        }
+        let normal_move = new BABYLON.Vector2(x_movement, z_movement).normalize().scale(time_scalar * _this.sensitivity);
+        if (activeKeyAction.has(KEY_ACTION.UP)) {
+            y_movement += 1;
+        }
+        if (activeKeyAction.has(KEY_ACTION.DOWN)) {
+            y_movement -= 1;
+        }
+        /*
+        camera.position.addInPlaceFromFloats(
+          normal_move.y * normal_dir.x + normal_move.x * normal_dir.y,
+          y_movement * time_sens_scalar,
+          normal_move.y * normal_dir.y - normal_move.x * normal_dir.x
+        );
+      
+        */
+        return new BABYLON.Vector3(normal_move.y * normal_dir.x + normal_move.x * normal_dir.y, y_movement * time_scalar, normal_move.y * normal_dir.y - normal_move.x * normal_dir.x);
     }
 
     // import GameControl from "./GameControl";
@@ -743,8 +773,16 @@ var app = (function () {
       
         console.log(scene.getActiveMeshes());
         */
-        let getGameInput = () => new GameInput(canvas, vec => {
-            var _a, _b;
+        let camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, 0), scene);
+        /*
+        let arcCamera = new BABYLON.FollowCamera("FollowCamera",
+          new BABYLON.Vector3(0, 0, -10), scene
+        );
+        */
+        let arcCamera = new BABYLON.ArcFollowCamera("ArcCamera", 0, 0, 10, null, scene);
+        let getGameInput = () => new GameInput(canvas).add("key", obj => {
+            var _a, _b, _c;
+            let vec = processMovementVector(obj);
             /*
             sphere.moveWithCollisions(
                 vec.multiplyByFloats(1.0, 0, 1.0));
@@ -755,26 +793,31 @@ var app = (function () {
             else {
                 (_b = gameScene.mainCharacter) === null || _b === void 0 ? void 0 : _b.beginIdle();
             }
+            (_c = gameScene.mainCharacter) === null || _c === void 0 ? void 0 : _c.meshes[0].moveWithCollisions(vec.multiplyByFloats(1.0, 0, 1.0));
             /*
             sphere.applyImpulse(
                 vec.multiplyByFloats(0, 1.0, 0),
                 new BABYLON.Vector3(0, 0, 0));
             */
-        }).add("dir", (dir) => {
+        }).add("dir", ({ camera }) => {
             var _a;
-            let d = dir;
+            if (!camera)
+                camera = arcCamera;
+            let d = camera.getForwardRay().direction;
             let a = (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.meshes[0];
             if (a) {
-                if (performance.now() > (window["ab"] || 0) + 1000) {
-                    window["ab"] = performance.now();
-                    console.log(d.x.toFixed(6), d.y.toFixed(6), a.position.x, a.position.y, a.position.z);
-                }
                 a.lookAt(a.position.add(new BABYLON.Vector3(d.x, 0, d.z)));
             }
-            window["a"] = d;
         });
-        let camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, 0), scene);
-        let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera", 0, 0, 10, new BABYLON.Vector3(0, 0, 0), scene);
+        (async () => {
+            var _a;
+            let a;
+            while (!(a = (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.meshes[0])) {
+                await new Promise(res => setTimeout(res, 500));
+            }
+            console.log(a);
+            arcCamera.lockedTarget = a;
+        })();
         let usingFreeCamera = false;
         let useFreeCamera = () => {
             if (usingFreeCamera)
@@ -783,11 +826,11 @@ var app = (function () {
             arcCamera.inputs.removeByType("GameInput");
             scene.activeCamera = camera;
             camera.attachControl(canvas, true);
-            camera.inputs.add(getGameInput());
-            // camera.parent = gameScene.mainCharacter?.meshes[0];
+            // camera.inputs.add(getGameInput() as GameInput<BABYLON.FreeCamera>);
             usingFreeCamera = true;
         };
         let useArcCamera = (force) => {
+            var _a;
             if (!usingFreeCamera && !force)
                 return;
             camera.detachControl(canvas);
@@ -796,8 +839,7 @@ var app = (function () {
             // arcCamera.setTarget()
             arcCamera.position.set(0, 0, 10);
             arcCamera.attachControl(canvas, true);
-            arcCamera.inputs.add(getGameInput());
-            // arcCamera.parent = gameScene.mainCharacter?.meshes[0];
+            (_a = arcCamera.inputs) === null || _a === void 0 ? void 0 : _a.add(getGameInput());
             usingFreeCamera = false;
         };
         useArcCamera(true);
@@ -928,12 +970,12 @@ var app = (function () {
     			a = element("a");
     			a.textContent = "Svelte tutorial";
     			t8 = text(" to learn how to build Svelte apps.");
-    			add_location(button, file, 79, 2, 2222);
+    			add_location(button, file, 79, 2, 2240);
     			attr_dev(h1, "class", "svelte-w6s1zu");
-    			add_location(h1, file, 80, 2, 2279);
+    			add_location(h1, file, 80, 2, 2298);
     			attr_dev(a, "href", "https://svelte.dev/tutorial");
-    			add_location(a, file, 81, 17, 2319);
-    			add_location(p, file, 81, 4, 2306);
+    			add_location(a, file, 81, 17, 2339);
+    			add_location(p, file, 81, 4, 2326);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
@@ -992,11 +1034,11 @@ var app = (function () {
     			t1 = space();
     			canvas = element("canvas");
     			attr_dev(div, "class", "fps-box svelte-w6s1zu");
-    			add_location(div, file, 74, 4, 2067);
+    			add_location(div, file, 74, 4, 2080);
     			attr_dev(canvas, "id", "renderCanvas");
     			attr_dev(canvas, "touch-action", "none");
     			attr_dev(canvas, "class", "svelte-w6s1zu");
-    			add_location(canvas, file, 75, 4, 2104);
+    			add_location(canvas, file, 75, 4, 2118);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -1045,7 +1087,7 @@ var app = (function () {
     			main = element("main");
     			if_block.c();
     			attr_dev(main, "class", "svelte-w6s1zu");
-    			add_location(main, file, 72, 0, 2040);
+    			add_location(main, file, 72, 0, 2051);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");

@@ -58,6 +58,18 @@ export async function startGame(_canvas: HTMLCanvasElement){
   console.log(scene.getActiveMeshes());
   */
   
+  let camera = new BABYLON.UniversalCamera(
+    "Camera", new BABYLON.Vector3(0, 0, 0), scene
+  );
+
+  /*
+  let arcCamera = new BABYLON.FollowCamera("FollowCamera",
+    new BABYLON.Vector3(0, 0, -10), scene
+  );
+  */
+  let arcCamera = new BABYLON.ArcFollowCamera("ArcCamera",
+    0, 0, 10, null, scene
+  );
 
   let getGameInput = () => new GameInput<BABYLON.Camera>(
     canvas
@@ -67,17 +79,22 @@ export async function startGame(_canvas: HTMLCanvasElement){
     sphere.moveWithCollisions(
         vec.multiplyByFloats(1.0, 0, 1.0));
     */
+    
     if(vec.x || vec.z){
       gameScene.mainCharacter?.beginWalk();
     } else{
       gameScene.mainCharacter?.beginIdle();
     }
+    gameScene.mainCharacter?.meshes[0].moveWithCollisions(
+        vec.multiplyByFloats(1.0, 0, 1.0)
+    );
     /*
     sphere.applyImpulse(
         vec.multiplyByFloats(0, 1.0, 0),
         new BABYLON.Vector3(0, 0, 0));
     */
   }).add("dir", ({ camera }) => {
+    if(!camera) camera = arcCamera;
     let d = camera.getForwardRay().direction;
     let a = gameScene.mainCharacter?.meshes[0]
     if(a as BABYLON.Mesh){
@@ -86,13 +103,14 @@ export async function startGame(_canvas: HTMLCanvasElement){
     }
   });
 
-
-  let camera = new BABYLON.UniversalCamera(
-    "Camera", new BABYLON.Vector3(0, 0, 0), scene
-  );
-
-  let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera",
-      0, 0, 10, new BABYLON.Vector3(0, 0, 0), scene);
+  (async () => {
+    let a: BABYLON.AbstractMesh;
+    while(!( a = gameScene.mainCharacter?.meshes[0] )){
+      await new Promise(res => setTimeout(res, 500));
+    }
+    console.log(a);
+    arcCamera.lockedTarget = a;
+  })();
 
   let usingFreeCamera: boolean = false;
   let useFreeCamera = () => {
@@ -102,8 +120,7 @@ export async function startGame(_canvas: HTMLCanvasElement){
 
     scene.activeCamera = camera;
     camera.attachControl(canvas, true);
-    camera.inputs.add(getGameInput() as GameInput<BABYLON.FreeCamera>);
-    // camera.parent = gameScene.mainCharacter?.meshes[0];
+    // camera.inputs.add(getGameInput() as GameInput<BABYLON.FreeCamera>);
 
     usingFreeCamera = true;
   };
@@ -117,8 +134,7 @@ export async function startGame(_canvas: HTMLCanvasElement){
     // arcCamera.setTarget()
     arcCamera.position.set(0, 0, 10);
     arcCamera.attachControl(canvas, true);
-    arcCamera.inputs.add(getGameInput() as GameInput<BABYLON.ArcRotateCamera>);
-    // arcCamera.parent = gameScene.mainCharacter?.meshes[0];
+    arcCamera.inputs?.add(getGameInput() as GameInput<BABYLON.ArcRotateCamera>);
 
     usingFreeCamera = false;
   }
