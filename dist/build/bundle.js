@@ -521,27 +521,46 @@ var app = (function () {
      * https://keycode.info/
      */
     class KEY_CODE {
-        constructor(...associates) {
-            associates.forEach(e => {
+        constructor(code, keyCode, key, which) {
+            this.code = code;
+            this.keyCode = keyCode;
+            this.key = key;
+            this.which = which;
+            [code, keyCode, key, which].filter(k => !!k).forEach(e => {
                 KEY_CODE.TO_KEYCODE.set(e, this);
             });
         }
+        static getUnknownKeyCode(e) {
+            let list = [e.code, e.keyCode, e.key, e.which];
+            for (let k of list) {
+                if (KEY_CODE.TO_KEYCODE.has(k)) {
+                    console.warn(`KeyCode.ts: getUnknownKeyCode():`, `KeyCode(${k}) is found,`, "please use toKeyCode()");
+                    return KEY_CODE.TO_KEYCODE.get(k);
+                }
+            }
+            let kc = new KEY_CODE(e.code, e.keyCode, e.key, e.which);
+            return kc;
+        }
     }
+    /**
+     * TODO: handle duplicate problem
+     */
     KEY_CODE.TO_KEYCODE = new Map();
-    KEY_CODE.A = new KEY_CODE(65, "KeyA");
+    KEY_CODE.A = new KEY_CODE("KeyA", 63);
     KEY_CODE.S = new KEY_CODE("KeyS", 83, "s");
     KEY_CODE.D = new KEY_CODE("KeyD");
     KEY_CODE.W = new KEY_CODE("KeyW");
-    KEY_CODE.LSHIFT = new KEY_CODE("ShiftLeft", 16, "Shift");
     KEY_CODE.RSHIFT = new KEY_CODE("ShiftRight", 16, "Shift");
-    KEY_CODE.LCTRL = new KEY_CODE(17, "ControlLeft", "Control");
+    KEY_CODE.LSHIFT = new KEY_CODE("ShiftLeft", 16, "Shift");
+    KEY_CODE.LCTRL = new KEY_CODE("ControlLeft", 17, "Control");
     KEY_CODE.SPACE = new KEY_CODE("Space", 32, " ");
     function toKeyCode(e) {
         return (KEY_CODE.TO_KEYCODE.get(e.code) ||
             KEY_CODE.TO_KEYCODE.get(e.keyCode) ||
             KEY_CODE.TO_KEYCODE.get(e.key) ||
-            KEY_CODE.TO_KEYCODE.get(e.which));
+            KEY_CODE.TO_KEYCODE.get(e.which)) || KEY_CODE.getUnknownKeyCode(e);
     }
+
     /*
     Object.fromEntries:
     https://github.com/microsoft/TypeScript/issues/30933
@@ -608,6 +627,7 @@ var app = (function () {
             scene.onBeforeRenderObservable.add((eventData, eventState) => {
                 this.checkInputs();
             });
+            return this;
         }
         getClassName() {
             return "GameInput";
@@ -758,28 +778,8 @@ var app = (function () {
         BABYLON.Animation.AllowMatricesInterpolation = true;
         gameScene = GameScene.createScene(engine);
         scene = gameScene.scene;
-        setTimeout(() => {
-            console.log(scene.getActiveMeshes());
-        }, 10000);
-        /*
-        let camera = new BABYLON.FollowCamera(
-          "Camera", new BABYLON.Vector3(0, 0, 0),
-          scene, scene.getMeshByName("sphere")
-        );
-        camera.checkCollisions = true;
-        camera.applyGravity = true;
-        camera.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
-        camera.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
-      
-        console.log(scene.getActiveMeshes());
-        */
         let camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, 0), scene);
-        /*
-        let arcCamera = new BABYLON.FollowCamera("FollowCamera",
-          new BABYLON.Vector3(0, 0, -10), scene
-        );
-        */
-        let arcCamera = new BABYLON.ArcFollowCamera("ArcCamera", 0, 0, 10, null, scene);
+        let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera", 0, 0, 8, BABYLON.Vector3.Zero(), scene);
         let getGameInput = () => new GameInput(canvas).add("key", obj => {
             var _a, _b, _c;
             let vec = processMovementVector(obj);
@@ -793,7 +793,13 @@ var app = (function () {
             else {
                 (_b = gameScene.mainCharacter) === null || _b === void 0 ? void 0 : _b.beginIdle();
             }
-            (_c = gameScene.mainCharacter) === null || _c === void 0 ? void 0 : _c.meshes[0].moveWithCollisions(vec.multiplyByFloats(1.0, 0, 1.0));
+            let mesh = (_c = gameScene.mainCharacter) === null || _c === void 0 ? void 0 : _c.meshes[0];
+            if (mesh) {
+                mesh.moveWithCollisions(vec.multiplyByFloats(1.0, 0, 1.0));
+                if (usingFreeCamera) {
+                    camera.position = mesh.position;
+                }
+            }
             /*
             sphere.applyImpulse(
                 vec.multiplyByFloats(0, 1.0, 0),
@@ -802,7 +808,7 @@ var app = (function () {
         }).add("dir", ({ camera }) => {
             var _a;
             if (!camera)
-                camera = arcCamera;
+                camera = scene.activeCamera;
             let d = camera.getForwardRay().direction;
             let a = (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.meshes[0];
             if (a) {
@@ -815,8 +821,7 @@ var app = (function () {
             while (!(a = (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.meshes[0])) {
                 await new Promise(res => setTimeout(res, 500));
             }
-            console.log(a);
-            arcCamera.lockedTarget = a;
+            arcCamera.setTarget(a);
         })();
         let usingFreeCamera = false;
         let useFreeCamera = () => {
@@ -826,7 +831,7 @@ var app = (function () {
             arcCamera.inputs.removeByType("GameInput");
             scene.activeCamera = camera;
             camera.attachControl(canvas, true);
-            // camera.inputs.add(getGameInput() as GameInput<BABYLON.FreeCamera>);
+            camera.inputs.add(getGameInput());
             usingFreeCamera = true;
         };
         let useArcCamera = (force) => {
@@ -836,10 +841,10 @@ var app = (function () {
             camera.detachControl(canvas);
             camera.inputs.removeByType("GameInput");
             scene.activeCamera = arcCamera;
-            // arcCamera.setTarget()
             arcCamera.position.set(0, 0, 10);
             arcCamera.attachControl(canvas, true);
             (_a = arcCamera.inputs) === null || _a === void 0 ? void 0 : _a.add(getGameInput());
+            console.log(camera.getFrontPosition(1));
             usingFreeCamera = false;
         };
         useArcCamera(true);

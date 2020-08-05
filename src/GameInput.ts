@@ -1,42 +1,11 @@
 
 
-/**
- * https://keycode.info/
- */
-
-export class KEY_CODE
-{
-  static TO_KEYCODE = new Map<string | number, KEY_CODE>();
-
-  constructor(...associates: (string | number)[]){
-    associates.forEach(e => {
-      KEY_CODE.TO_KEYCODE.set(e, this);
-    });
-  }
-
-  static A = new KEY_CODE(65, "KeyA");
-  static S = new KEY_CODE("KeyS", 83, "s");
-  static D = new KEY_CODE("KeyD");
-  static W = new KEY_CODE("KeyW");
-  static LSHIFT = new KEY_CODE("ShiftLeft", 16, "Shift")
-  static RSHIFT = new KEY_CODE("ShiftRight", 16, "Shift")
-  static LCTRL = new KEY_CODE(17, "ControlLeft", "Control")
-  static SPACE = new KEY_CODE("Space", 32, " ")
-};
-
-function toKeyCode(e: KeyboardEvent): KEY_CODE {
-  return (
-      KEY_CODE.TO_KEYCODE.get(e.code) ||
-      KEY_CODE.TO_KEYCODE.get(e.keyCode) ||
-      KEY_CODE.TO_KEYCODE.get(e.key) ||
-      KEY_CODE.TO_KEYCODE.get(e.which)
-  );
-}
-
 /*
 Object.fromEntries:
 https://github.com/microsoft/TypeScript/issues/30933
 */
+
+import { KEY_CODE, toKeyCode } from "./KeyCode";
 
 export enum KEY_ACTION {
   LEFT,
@@ -117,6 +86,8 @@ implements BABYLON.ICameraInput<T>
     ) => {
       this.checkInputs();
     })
+
+    return this;
   }
 
   getClassName(): string {
