@@ -1,5 +1,4 @@
 <script>
-import { waitFor } from "./TaskScheduler";
 
 </script>
 <script lang="ts" context="module">
@@ -36,17 +35,20 @@ import { waitFor } from "./TaskScheduler";
     `${BABYLON_BASE}/gui/babylon.gui.min.js`,
   ];
 
-  Promise.all([...BABYLON_SCRIPT.map(src => (
-    new Promise(res => {
-      injectScript(src, res)
-    })
-  )), new Promise(res => (
-    injectScript(BABYLON_MAIN_SCRIPT, res)
-  )).then(() => Promise.all(BABYLON_DEPENDENT_SCRIPT.map(
-    src => new Promise(res => {
-      injectScript(src, res)
-    })
-  )))])
+  export const scriptLoadPromise = (async () => {
+    let p1 = BABYLON_SCRIPT.map(src => (
+      new Promise(res => injectScript(src, res))
+    ));
+
+    await new Promise(res => injectScript(BABYLON_MAIN_SCRIPT, res));
+
+    let p2 = BABYLON_DEPENDENT_SCRIPT.map(src => (
+      new Promise(res => injectScript(src, res))
+    ));
+
+    await Promise.all([...p1, ...p2]);
+  })();
+
 
 
 </script>
