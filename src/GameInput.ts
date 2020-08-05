@@ -195,6 +195,9 @@ implements BABYLON.ICameraInput<T>
   checkInputs(){
     if(!this.attached) return;
 
+    let frameTime = performance.now() - this.lastCheck;
+    this.lastCheck = performance.now();
+
     const camera = this.camera;
     
     let listeners = this.listeners.get(EVENT_TYPE.MOUSE);
@@ -206,7 +209,6 @@ implements BABYLON.ICameraInput<T>
 
     listeners = this.listeners.get(EVENT_TYPE.KEY);
     if(listeners?.length){
-      let frameTime = performance.now() - this.lastCheck;
 
       let activeKeyAction = new Set<KEY_ACTION>();
       for(let [ key_action, key_code_set ] of this.keyMap.entries()){
@@ -226,7 +228,6 @@ implements BABYLON.ICameraInput<T>
       }
     }
 
-    this.lastCheck = performance.now();
   }
 }
 export default GameInput;
@@ -236,8 +237,7 @@ export function processMovementVector({
   activeKeyAction, frameTime, camera, _this
 }: EVENT_LISTENER_ARGUMENT_TYPE){
   let dir = camera.getForwardRay().direction;
-  let normal_dir = new BABYLON.Vector2(
-      dir.x, dir.z).normalize();
+  let normal_dir = new BABYLON.Vector2(dir.x, dir.z).normalize();
   
     
   let time_scalar = frameTime * 0.001;
@@ -271,15 +271,7 @@ export function processMovementVector({
     y_movement -= 1;
   }
 
-  /*
-  camera.position.addInPlaceFromFloats(
-    normal_move.y * normal_dir.x + normal_move.x * normal_dir.y,
-    y_movement * time_sens_scalar,
-    normal_move.y * normal_dir.y - normal_move.x * normal_dir.x
-  );
 
-  */
-  
   return new BABYLON.Vector3(
     normal_move.y * normal_dir.x + normal_move.x * normal_dir.y,
     y_movement * time_scalar,

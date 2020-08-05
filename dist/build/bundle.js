@@ -692,6 +692,8 @@ var app = (function () {
         checkInputs() {
             if (!this.attached)
                 return;
+            let frameTime = performance.now() - this.lastCheck;
+            this.lastCheck = performance.now();
             const camera = this.camera;
             let listeners = this.listeners.get(EVENT_TYPE.MOUSE);
             if (listeners === null || listeners === void 0 ? void 0 : listeners.length) {
@@ -701,7 +703,6 @@ var app = (function () {
             }
             listeners = this.listeners.get(EVENT_TYPE.KEY);
             if (listeners === null || listeners === void 0 ? void 0 : listeners.length) {
-                let frameTime = performance.now() - this.lastCheck;
                 let activeKeyAction = new Set();
                 for (let [key_action, key_code_set] of this.keyMap.entries()) {
                     if ([...key_code_set].some(k => this.pressed.has(k))) {
@@ -717,7 +718,6 @@ var app = (function () {
                     });
                 }
             }
-            this.lastCheck = performance.now();
         }
     }
     function processMovementVector({ activeKeyAction, frameTime, camera, _this }) {
@@ -746,14 +746,6 @@ var app = (function () {
         if (activeKeyAction.has(KEY_ACTION.DOWN)) {
             y_movement -= 1;
         }
-        /*
-        camera.position.addInPlaceFromFloats(
-          normal_move.y * normal_dir.x + normal_move.x * normal_dir.y,
-          y_movement * time_sens_scalar,
-          normal_move.y * normal_dir.y - normal_move.x * normal_dir.x
-        );
-      
-        */
         return new BABYLON.Vector3(normal_move.y * normal_dir.x + normal_move.x * normal_dir.y, y_movement * time_scalar, normal_move.y * normal_dir.y - normal_move.x * normal_dir.x);
     }
 
@@ -779,14 +771,10 @@ var app = (function () {
         gameScene = GameScene.createScene(engine);
         scene = gameScene.scene;
         let camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, 0), scene);
-        let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera", 0, 0, 8, BABYLON.Vector3.Zero(), scene);
+        let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera", 0, 0, 10, BABYLON.Vector3.Zero(), scene);
         let getGameInput = () => new GameInput(canvas).add("key", obj => {
             var _a, _b, _c;
             let vec = processMovementVector(obj);
-            /*
-            sphere.moveWithCollisions(
-                vec.multiplyByFloats(1.0, 0, 1.0));
-            */
             if (vec.x || vec.z) {
                 (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.beginWalk();
             }
@@ -795,16 +783,20 @@ var app = (function () {
             }
             let mesh = (_c = gameScene.mainCharacter) === null || _c === void 0 ? void 0 : _c.meshes[0];
             if (mesh) {
+                /*
+                mesh.applyImpulse();
+          
+                mesh.position = mesh.position.add(
+                    new BABYLON.Vector3(vec.x, 0, vec.z));
+                */
                 mesh.moveWithCollisions(vec.multiplyByFloats(1.0, 0, 1.0));
                 if (usingFreeCamera) {
                     camera.position = mesh.position;
                 }
+                else {
+                    arcCamera.target = mesh.position;
+                }
             }
-            /*
-            sphere.applyImpulse(
-                vec.multiplyByFloats(0, 1.0, 0),
-                new BABYLON.Vector3(0, 0, 0));
-            */
         }).add("dir", ({ camera }) => {
             var _a;
             if (!camera)
@@ -815,14 +807,6 @@ var app = (function () {
                 a.lookAt(a.position.add(new BABYLON.Vector3(d.x, 0, d.z)));
             }
         });
-        (async () => {
-            var _a;
-            let a;
-            while (!(a = (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.meshes[0])) {
-                await new Promise(res => setTimeout(res, 500));
-            }
-            arcCamera.setTarget(a);
-        })();
         let usingFreeCamera = false;
         let useFreeCamera = () => {
             if (usingFreeCamera)
@@ -832,6 +816,7 @@ var app = (function () {
             scene.activeCamera = camera;
             camera.attachControl(canvas, true);
             camera.inputs.add(getGameInput());
+            camera.setTarget(arcCamera.getForwardRay().direction.add(camera.position));
             usingFreeCamera = true;
         };
         let useArcCamera = (force) => {
@@ -841,10 +826,10 @@ var app = (function () {
             camera.detachControl(canvas);
             camera.inputs.removeByType("GameInput");
             scene.activeCamera = arcCamera;
-            arcCamera.position.set(0, 0, 10);
             arcCamera.attachControl(canvas, true);
             (_a = arcCamera.inputs) === null || _a === void 0 ? void 0 : _a.add(getGameInput());
-            console.log(camera.getFrontPosition(1));
+            // arcCamera.position = camera.cameraDirection.scale(-arcCamera.radius);
+            // arcCamera.target = camera.position;
             usingFreeCamera = false;
         };
         useArcCamera(true);
@@ -884,7 +869,12 @@ var app = (function () {
         game.canvas = canvas;
         setGame(game);
     }
-    window.addEventListener("resize", function () {
+    window.addEventListener("resize", function (e) {
+        let rect = document.getElementsByTagName("body")[0].getBoundingClientRect();
+        if (canvas) {
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
         engine === null || engine === void 0 ? void 0 : engine.resize();
     });
 
@@ -975,12 +965,12 @@ var app = (function () {
     			a = element("a");
     			a.textContent = "Svelte tutorial";
     			t8 = text(" to learn how to build Svelte apps.");
-    			add_location(button, file, 79, 2, 2240);
+    			add_location(button, file, 79, 2, 2222);
     			attr_dev(h1, "class", "svelte-w6s1zu");
-    			add_location(h1, file, 80, 2, 2298);
+    			add_location(h1, file, 80, 2, 2279);
     			attr_dev(a, "href", "https://svelte.dev/tutorial");
-    			add_location(a, file, 81, 17, 2339);
-    			add_location(p, file, 81, 4, 2326);
+    			add_location(a, file, 81, 17, 2319);
+    			add_location(p, file, 81, 4, 2306);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
@@ -1039,11 +1029,11 @@ var app = (function () {
     			t1 = space();
     			canvas = element("canvas");
     			attr_dev(div, "class", "fps-box svelte-w6s1zu");
-    			add_location(div, file, 74, 4, 2080);
+    			add_location(div, file, 74, 4, 2067);
     			attr_dev(canvas, "id", "renderCanvas");
     			attr_dev(canvas, "touch-action", "none");
     			attr_dev(canvas, "class", "svelte-w6s1zu");
-    			add_location(canvas, file, 75, 4, 2118);
+    			add_location(canvas, file, 75, 4, 2104);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -1092,7 +1082,7 @@ var app = (function () {
     			main = element("main");
     			if_block.c();
     			attr_dev(main, "class", "svelte-w6s1zu");
-    			add_location(main, file, 72, 0, 2051);
+    			add_location(main, file, 72, 0, 2040);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
