@@ -5,7 +5,6 @@ import GameRenderLoop from "./GameRenderLoop";
 import GameScene, { createScene } from "./GameScene";
 import GameInput, { processMovementVector } from "./GameInput";
 import { setGame } from "./Global";
-import { ArcRotateCameraGamepadInput } from "babylonjs";
 
 export var engine: BABYLON.Engine;
 export var scene: BABYLON.Scene;
@@ -49,6 +48,9 @@ export async function startGame(_canvas: HTMLCanvasElement){
   let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera",
     0, 0, 10, BABYLON.Vector3.Zero(), scene
   );
+  arcCamera.zoomOnFactor = 0.01;
+  arcCamera.lowerRadiusLimit = 0.01;
+  arcCamera.wheelPrecision = 50;
 
   let getGameInput = () => new GameInput<BABYLON.Camera>(
     canvas

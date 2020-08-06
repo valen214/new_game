@@ -1,9 +1,15 @@
-<script>
 
-</script>
 <script lang="ts" context="module">
   
-  function injectScript(src, onload){
+  export function prefetch(href: string){
+    let link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = href;
+    link.as = "script";
+    document.head.appendChild(link);
+  }
+
+  export function injectScript(src: string, onload: (arg0: Event) => void){
     let head = document.getElementsByTagName("head")[0];
     let script = document.createElement("script");
     script.src = src;
@@ -30,7 +36,7 @@
     `${BABYLON_BASE}/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js`,
     `${BABYLON_BASE}/postProcessesLibrary/` +
         `babylonjs.postProcess.min.js`,
-        `${BABYLON_BASE}/loaders/babylonjs.loaders.js`,
+    `${BABYLON_BASE}/loaders/babylonjs.loaders.js`,
     `${BABYLON_BASE}/serializers/babylonjs.serializers.min.js`,
     `${BABYLON_BASE}/gui/babylon.gui.min.js`,
   ];
@@ -49,15 +55,26 @@
     await Promise.all([...p1, ...p2]);
   })();
 
+  declare global {
+    namespace JSX {
+      interface HTMLProps {
+        as?: string;
+      }
 
-
+      interface HTMLAttributes {
+        as?: string;
+      }
+    }
+  }
 </script>
 
 
+
 <svelte:head>
-  <!--
-	{#each BABYLON_LOADER as [ src, load ]}
-    <script src={src} on:load={load}></script>
+	{#each [
+      ...BABYLON_SCRIPT,
+      BABYLON_MAIN_SCRIPT,
+      ...BABYLON_DEPENDENT_SCRIPT] as src }
+    <link rel="prefetch" href={src} { ...{ as:"script" } } />
   {/each}
-  -->
 </svelte:head>

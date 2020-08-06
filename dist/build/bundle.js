@@ -438,6 +438,77 @@ var app = (function () {
     }
     Human.imported = false;
 
+    var STATE$1;
+    (function (STATE) {
+        STATE[STATE["IDLE"] = 0] = "IDLE";
+        STATE[STATE["WALK"] = 1] = "WALK";
+        STATE[STATE["RUN"] = 2] = "RUN";
+    })(STATE$1 || (STATE$1 = {}));
+    class Humanoid {
+        constructor(scene) {
+            this.scene = scene;
+            this.meshes = Humanoid.meshes;
+            this.skeletons = Humanoid.skeletons;
+            var skeleton = this.skeletons[0];
+            skeleton.animationPropertiesOverride = new BABYLON.AnimationPropertiesOverride();
+            skeleton.animationPropertiesOverride.enableBlending = true;
+            skeleton.animationPropertiesOverride.blendingSpeed = 0.05;
+            skeleton.animationPropertiesOverride.loopMode = 1;
+            this.idleRange = skeleton.getAnimationRange("YBot_Idle");
+            this.walkRange = skeleton.getAnimationRange("walk");
+            this.runRange = skeleton.getAnimationRange("YBot_Run");
+            var leftRange = skeleton.getAnimationRange("YBot_LeftStrafeWalk");
+            var rightRange = skeleton.getAnimationRange("YBot_RightStrafeWalk");
+            console.log(this);
+            setTimeout(() => {
+                // scene.stopAllAnimations();
+            }, 1000);
+            skeleton.createAnimationRange("startWalk", 0, 1);
+            skeleton.createAnimationRange("walk", 1, 3);
+            this.beginWalk();
+        }
+        beginIdle() {
+            if (this.idleRange && this.state !== STATE$1.IDLE) {
+                this.state = STATE$1.IDLE;
+                let ag = Humanoid.animationGroups[0];
+                ag.stop();
+                ag.goToFrame(0);
+            }
+        }
+        beginWalk() {
+            if (this.state !== STATE$1.WALK) {
+                this.state = STATE$1.WALK;
+                let ag = Humanoid.animationGroups[0];
+                ag.stop();
+                ag.start(false, 1.0, 0, 1);
+                new Promise(res => {
+                    ag.onAnimationEndObservable.addOnce(res);
+                }).then(() => {
+                    ag.start(true, 2.0, 1, 4);
+                });
+            }
+        }
+        addShadow(shadowGen) {
+            shadowGen.addShadowCaster(this.scene.meshes[0], true);
+            for (var index = 0; index < this.meshes.length; index++) {
+                this.meshes[index].receiveShadows = false;
+            }
+            return this;
+        }
+        static async createHumanoid(scene) {
+            if (!Humanoid.imported) {
+                await BABYLON.SceneLoader.ImportMeshAsync("", "./assets/", "humanoid.glb", scene).then(({ meshes, particleSystems, skeletons, animationGroups }) => {
+                    Humanoid.meshes = meshes;
+                    Humanoid.skeletons = skeletons;
+                    Humanoid.animationGroups = animationGroups;
+                    console.log(animationGroups);
+                });
+            }
+            return new Humanoid(scene);
+        }
+    }
+    Humanoid.imported = false;
+
     const GLOABL = new Map();
     Object.defineProperty(window, "GLOBAL", {
         get() {
@@ -494,6 +565,7 @@ var app = (function () {
         createBox(scene, {
             name: "box1"
         });
+        Humanoid.createHumanoid(scene);
         let light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
         var helper = scene.createDefaultEnvironment({
             enableGroundShadow: true
@@ -772,6 +844,9 @@ var app = (function () {
         scene = gameScene.scene;
         let camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, 0), scene);
         let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera", 0, 0, 10, BABYLON.Vector3.Zero(), scene);
+        arcCamera.zoomOnFactor = 0.01;
+        arcCamera.lowerRadiusLimit = 0.01;
+        arcCamera.wheelPrecision = 50;
         let getGameInput = () => new GameInput(canvas).add("key", obj => {
             var _a, _b, _c;
             let vec = processMovementVector(obj);

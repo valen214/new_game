@@ -1,4 +1,5 @@
 import Human from "./entities/Human";
+import Humanoid from "./entities/Humanoid";
 import { GLOABL } from "./Global";
 
 class GameScene
@@ -74,6 +75,8 @@ export function createScene(engine: BABYLON.Engine){
     name: "box1"
   });
 
+
+  Humanoid.createHumanoid(scene);
   
   let light = new BABYLON.HemisphericLight("light1",
       new BABYLON.Vector3(1, 1, 0), scene);
