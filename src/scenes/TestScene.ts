@@ -5,6 +5,12 @@ import Humanoid from "../entities/Humanoid";
 import { GLOABL } from "../Global";
 import { Player } from "../GamePlayer";
 
+/*
+https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
+jsdelivr
+
+*/
+
 
 export class TestScene
 extends BABYLON.Scene

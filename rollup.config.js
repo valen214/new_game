@@ -75,7 +75,9 @@ export default {
       dedupe: ['svelte'],
       extensions: [ ".js", ".ts", ".svelte" ]
 		}),
-		commonjs(),
+		commonjs({
+      include: "node_modules/**",
+    }),
     typescript({
       sourceMap: !production,
       // outDir: "./dist/ts",

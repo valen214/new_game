@@ -25,10 +25,10 @@ export class Player
     );
 
     this.arcCamera = new BABYLON.ArcRotateCamera("PlayerArcCamera",
-      0, 0, 10, BABYLON.Vector3.Zero(), scene
+      0, 1.1123, 2, new BABYLON.Vector3(0, 1.8, 0), scene
     );
     this.arcCamera.zoomOnFactor = 0.01;
-    this.arcCamera.lowerRadiusLimit = 0.01;
+    this.arcCamera.lowerRadiusLimit = 0.001;
     this.arcCamera.wheelPrecision = 50;
   }
 
@@ -57,6 +57,11 @@ export class Player
     this.usingFirstPersonCamera = true;
   }
 
+  /*
+  it behaves extremely like first person when radius is low
+
+
+  */
   useThirdPersonCamera(){
     if(this.usingFirstPersonCamera === false) return;
     this.universalCamera.detachControl(this.canvas);
@@ -91,7 +96,7 @@ export class Player
       }
   
       let mesh = this.target?.meshes && this.target?.meshes[0];
-      if(mesh){
+      if(mesh instanceof BABYLON.AbstractMesh){
   
         /*
         mesh.applyImpulse();
@@ -106,7 +111,8 @@ export class Player
         if(this.usingFirstPersonCamera){
           this.universalCamera.position = mesh.position;
         } else{
-          this.arcCamera.target = mesh.position;
+          this.arcCamera.position.addInPlaceFromFloats(vec.x, 0, vec.z);
+          this.arcCamera.target = mesh.position.add(new BABYLON.Vector3(0, 1.8, 0));
         }
       }
     }).add("dir", ({ camera }) => {

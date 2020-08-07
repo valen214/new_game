@@ -50,6 +50,8 @@ export async function startGame(_canvas: HTMLCanvasElement){
   game.scene = scene;
   game.canvas = canvas;
   GLOBAL.setGame(game);
+
+  return game;
 }
 
 window.addEventListener("resize", function(e: UIEvent){

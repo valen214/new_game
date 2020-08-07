@@ -12,10 +12,6 @@ class Humanoid
   public meshes: BABYLON.AbstractMesh[];
   public skeletons: BABYLON.Skeleton[];
 
-  private idleRange: BABYLON.AnimationRange;
-  private walkRange: BABYLON.AnimationRange;
-  private runRange: BABYLON.AnimationRange;
-
   private state: STATE;
 
 
@@ -30,23 +26,11 @@ class Humanoid
     skeleton.animationPropertiesOverride.blendingSpeed = 0.05;
     skeleton.animationPropertiesOverride.loopMode = 1;
 
-    this.idleRange = skeleton.getAnimationRange("YBot_Idle");
-    this.walkRange = skeleton.getAnimationRange("walk");
-    this.runRange = skeleton.getAnimationRange("YBot_Run");
-    var leftRange = skeleton.getAnimationRange("YBot_LeftStrafeWalk");
-    var rightRange = skeleton.getAnimationRange("YBot_RightStrafeWalk");
-
-    console.log(this);
-    setTimeout(() => {
-      // scene.stopAllAnimations();
-    }, 1000)
-    skeleton.createAnimationRange("startWalk", 0, 1);
-    skeleton.createAnimationRange("walk", 1, 3);
     this.beginWalk();
   }
 
   beginIdle(){
-    if(this.idleRange && this.state !== STATE.IDLE){
+    if(this.state !== STATE.IDLE){
       this.state = STATE.IDLE;
 
       let ag = Humanoid.animationGroups[0];

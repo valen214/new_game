@@ -1,42 +1,67 @@
+<svelte:options immutable={true} />
 
+<script context="module">
+  import { writable } from "svelte/store";
 
-<script lang="ts">
+  export const game = writable(null);
+</script>
+
+<script>
+  export let name;
+
+  import GUI, { show } from "./GUI.svelte";
   import { startGame, getFps } from "./Game";
   import { scriptLoadPromise } from "./BabylonJSLoader.svelte";
-  
-  export let name: string;
+  import { tick } from "svelte";
+
 
   
-  let started = true;
+  let started = writable(true);
+  let canvas;
   let fps = "";
 
 
-  // "tick-less" approach
-  let canvasContainer = Object.defineProperty({},
-    "canvas", {
-    async set(value){
-      await scriptLoadPromise;
-      console.log("all resource loaded, starting game");
-      startGame(value);
+  let unsub_from_started = started.subscribe(async value => {
+    await tick();
+    unsub_from_started();
+    await scriptLoadPromise;
 
-      
-      setInterval(() => {
-        fps = getFps();
-      }, 500);
-    }
+    
+    canvas.addEventListener("keydown", (e) => {
+      if(e.code === "Escape"){
+        $show = !$show;
+        console.log("pause:", $show);
+        e.preventDefault();
+      }
+    });
+
+    console.log("all resource loaded, starting game");
+    $game = await startGame(canvas);
+
+    setInterval(() => {
+      fps = getFps() || "";
+    }, 500);
   });
 
+  show.subscribe(value => {
+    if(value){
+
+    } else{
+      canvas?.focus();
+    }
+  })
 
 </script>
 
 <main>
-  {#if started}
+  {#if $started}
     <div class="fps-box">{fps}</div>
     <canvas id="renderCanvas"
-        bind:this={canvasContainer.canvas}
+        bind:this={canvas}
         touch-action="none"></canvas>
+    <GUI show={$show} game={game}/>
 	{:else}
-		<button on:click={() => started = true}>Start</button>
+		<button on:click={() => started.update(true)}>Start</button>
 		<h1>Hello {name}!</h1>
     <p>Visit the <a href="https://svelte.dev/tutorial">
         Svelte tutorial</a> to learn how to build Svelte apps.</p>
