@@ -1,3 +1,5 @@
+<script>
+</script>
 
 <script lang="ts" context="module">
   
@@ -21,8 +23,6 @@
   const BABYLON_BASE = "https://preview.babylonjs.com";
   const BABYLON_SCRIPT = [
     "https://code.jquery.com/pep/0.4.2/pep.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/" +
-        "dat-gui/0.6.2/dat.gui.min.js",
     `${BABYLON_BASE}/ammo.js`,
     `${BABYLON_BASE}/cannon.js`,
     `${BABYLON_BASE}/Oimo.js`,
@@ -41,12 +41,20 @@
     `${BABYLON_BASE}/gui/babylon.gui.min.js`,
   ];
 
+  console.log("load script");
   export const scriptLoadPromise = (async () => {
     let p1 = BABYLON_SCRIPT.map(src => (
       new Promise(res => injectScript(src, res))
     ));
 
-    await new Promise(res => injectScript(BABYLON_MAIN_SCRIPT, res));
+    /*
+    // await new Promise(res => injectScript(BABYLON_MAIN_SCRIPT, res));
+    
+    it's loaded in dist/index.html
+    because bundle.js accessed BABYLON.Scene in
+    `TestScene.ts: TestScene extends BABYLON.Scene`
+    
+    */
 
     let p2 = BABYLON_DEPENDENT_SCRIPT.map(src => (
       new Promise(res => injectScript(src, res))

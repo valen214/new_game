@@ -1,14 +1,14 @@
+
+
 <script lang="ts">
   import { startGame, getFps } from "./Game";
   import { scriptLoadPromise } from "./BabylonJSLoader.svelte";
   
-	export let name: string;
+  export let name: string;
+
   
   let started = true;
   let fps = "";
-  setInterval(() => {
-    fps = getFps();
-  }, 500);
 
 
   // "tick-less" approach
@@ -18,14 +18,16 @@
       await scriptLoadPromise;
       console.log("all resource loaded, starting game");
       startGame(value);
+
       
+      setInterval(() => {
+        fps = getFps();
+      }, 500);
     }
   });
 
 
 </script>
-
-
 
 <main>
   {#if started}

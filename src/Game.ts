@@ -3,7 +3,6 @@
 import GameUI from "./GameUI";
 import GameRenderLoop from "./GameRenderLoop";
 import * as GLOBAL from "./Global";
-import { Player } from "./GamePlayer";
 import { TestScene } from "./scenes/TestScene";
 
 export var engine: BABYLON.Engine;

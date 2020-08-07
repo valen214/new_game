@@ -34,7 +34,10 @@ implements ISceneLoader
 
 
     Common.createBox(this, {
-      name: "box1"
+      name: "box1",
+      physics: {
+        mass: 1.0,
+      }
     });
 
     
