@@ -1,5 +1,4 @@
 import GameInput, { processMovementVector } from "./GameInput";
-import { gameScene, scene } from "./Game";
 import Human from "./entities/Human";
 import Humanoid from "./entities/Humanoid";
 
