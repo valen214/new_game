@@ -1,14 +1,18 @@
 import Human from "./entities/Human";
 import Humanoid from "./entities/Humanoid";
 import { GLOABL } from "./Global";
+import { Player } from "./GamePlayer";
 
 class GameScene
 {
-  public mainCharacter: Human;
   public scene: BABYLON.Scene;
+  public player?: Player;
 
 
-  public static createScene(engine: BABYLON.Engine){
+  public static createScene(
+      engine: BABYLON.Engine,
+      canvas: HTMLCanvasElement
+  ){
     let scene = new GameScene();
     scene.scene = createScene(engine);
 
@@ -21,11 +25,45 @@ class GameScene
     shadowGenerator.useBlurExponentialShadowMap = true;
     shadowGenerator.blurKernel = 32;
   
+
+    let player = new Player(scene.scene, canvas);
+    scene.player = player;
+
     Human.createHuman(scene.scene).then(human => {
       human.addShadow(shadowGenerator);
-      scene.mainCharacter = human;
       console.log("HUMAN:", human);
       GLOABL.set("human", human);
+
+      
+      player.setTarget(human).useThirdPersonCamera();
+    });
+
+    
+
+    let escape = false;
+    canvas.addEventListener("keydown", e => {
+      if(e.code === "KeyF"){
+        if(player.usingFirstPersonCamera){
+
+        } else{
+          // arcCamera.position.addInPlaceFromFloats(0, 1, 0);
+          // arcCamera.setPosition(new BABYLON.Vector3(0, 0, -10));
+        }
+      }
+      if(!escape && e.code === "Escape"){
+        escape = true;
+
+        if(player.usingFirstPersonCamera){
+          player.useThirdPersonCamera();
+        } else{
+          player.useFirstPersonCamera();
+        }
+      }
+    });
+    canvas.addEventListener("keyup", e => {
+      if(e.code === "Escape"){
+        escape = false;
+      }
     });
 
     return scene;

@@ -367,7 +367,8 @@ var app = (function () {
         }
     }
 
-    function GameRenderLoop(engine, scene, camera) {
+    function GameRenderLoop(engine, scene) {
+        let camera = scene.activeCamera;
         scene.render();
         GameUI.info_text.text = scene.getMeshByName("sphere")
             .position.asArray().map((x, i) => {
@@ -525,69 +526,6 @@ var app = (function () {
             return game;
         }
     });
-
-    class GameScene {
-        static createScene(engine) {
-            let scene = new GameScene();
-            scene.scene = createScene(engine);
-            var light2 = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(0, -0.5, -1.0), scene.scene);
-            light2.position = new BABYLON.Vector3(0, 5, 5);
-            // Shadows
-            var shadowGenerator = new BABYLON.ShadowGenerator(1024, light2);
-            shadowGenerator.useBlurExponentialShadowMap = true;
-            shadowGenerator.blurKernel = 32;
-            Human.createHuman(scene.scene).then(human => {
-                human.addShadow(shadowGenerator);
-                scene.mainCharacter = human;
-                console.log("HUMAN:", human);
-                GLOABL.set("human", human);
-            });
-            return scene;
-        }
-        ;
-    }
-    function createBox(scene, { name, height = 1, width = 1, pos = [0, 0, 0], mass = 1, }) {
-        var box = BABYLON.MeshBuilder.CreateBox(name, {
-            height, width
-        }, scene);
-        box.position.set(pos[0], pos[1], pos[2]);
-        box.physicsImpostor = new BABYLON.PhysicsImpostor(box, BABYLON.PhysicsImpostor.BoxImpostor, {
-            mass, friction: 0.5, restitution: 0.7,
-        }, scene);
-        return box;
-    }
-    function createScene(engine) {
-        let scene = new BABYLON.Scene(engine);
-        scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
-        scene.collisionsEnabled = true;
-        let physicsPlugin = new BABYLON.AmmoJSPlugin();
-        scene.enablePhysics(scene.gravity, physicsPlugin);
-        createBox(scene, {
-            name: "box1"
-        });
-        Humanoid.createHumanoid(scene);
-        let light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
-        var helper = scene.createDefaultEnvironment({
-            enableGroundShadow: true
-        });
-        helper.setMainColor(BABYLON.Color3.Gray());
-        helper.ground.position.y += 0.01;
-        let sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {
-            diameter: 2
-        }, scene);
-        // sphere.checkCollisions = true;
-        sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.CylinderImpostor, {
-            mass: 10.0, friction: 1.0, restitution: 0
-        }, scene);
-        var ground = BABYLON.MeshBuilder.CreateGround("ground", {
-            height: 20, width: 20
-        }, scene);
-        ground.position.set(0, -5, 0);
-        ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, {
-            mass: 0, friction: 0.5, restitution: 0.7,
-        }, scene);
-        return scene;
-    }
 
     /**
      * https://keycode.info/
@@ -821,6 +759,173 @@ var app = (function () {
         return new BABYLON.Vector3(normal_move.y * normal_dir.x + normal_move.x * normal_dir.y, y_movement * time_scalar, normal_move.y * normal_dir.y - normal_move.x * normal_dir.x);
     }
 
+    class Player {
+        constructor(scene, canvas) {
+            this.usingFirstPersonCamera = null;
+            this.scene = scene;
+            this.canvas = canvas;
+            this.universalCamera = new BABYLON.UniversalCamera("PlayerUniversalCamera", new BABYLON.Vector3(0, 0, 0), scene);
+            this.arcCamera = new BABYLON.ArcRotateCamera("PlayerArcCamera", 0, 0, 10, BABYLON.Vector3.Zero(), scene);
+            this.arcCamera.zoomOnFactor = 0.01;
+            this.arcCamera.lowerRadiusLimit = 0.01;
+            this.arcCamera.wheelPrecision = 50;
+        }
+        setTarget(mesh) {
+            this.target = mesh;
+            if (mesh instanceof BABYLON.Mesh) {
+                this.universalCamera.position = mesh.position;
+            }
+            return this;
+        }
+        useFirstPersonCamera() {
+            if (this.usingFirstPersonCamera)
+                return;
+            this.arcCamera.detachControl(this.canvas);
+            this.arcCamera.inputs.removeByType("GameInput");
+            this.scene.activeCamera = this.universalCamera;
+            this.universalCamera.attachControl(this.canvas, true);
+            this.universalCamera.inputs.add(this.getGameInput());
+            this.universalCamera.setTarget(this.arcCamera.getForwardRay().direction.add(this.universalCamera.position));
+            this.usingFirstPersonCamera = true;
+        }
+        useThirdPersonCamera() {
+            var _a;
+            if (this.usingFirstPersonCamera === false)
+                return;
+            this.universalCamera.detachControl(this.canvas);
+            this.universalCamera.inputs.removeByType("GameInput");
+            this.scene.activeCamera = this.arcCamera;
+            this.arcCamera.attachControl(this.canvas, true);
+            (_a = this.arcCamera.inputs) === null || _a === void 0 ? void 0 : _a.add(this.getGameInput());
+            // arcCamera.position = camera.cameraDirection.scale(-arcCamera.radius);
+            // arcCamera.target = camera.position;
+            this.usingFirstPersonCamera = false;
+        }
+        getGameInput() {
+            return new GameInput(this.canvas).add("key", obj => {
+                var _a, _b;
+                let vec = processMovementVector(obj);
+                if (vec.x || vec.z) {
+                    if (this.target instanceof Human
+                        || this.target instanceof Humanoid) {
+                        this.target.beginWalk();
+                    }
+                }
+                else if (this.target instanceof Human) {
+                    this.target.beginIdle();
+                }
+                let mesh = ((_a = this.target) === null || _a === void 0 ? void 0 : _a.meshes) && ((_b = this.target) === null || _b === void 0 ? void 0 : _b.meshes[0]);
+                if (mesh) {
+                    /*
+                    mesh.applyImpulse();
+              
+                    mesh.position = mesh.position.add(
+                        new BABYLON.Vector3(vec.x, 0, vec.z));
+                    */
+                    mesh.moveWithCollisions(vec.multiplyByFloats(1.0, 0, 1.0));
+                    if (this.usingFirstPersonCamera) {
+                        this.universalCamera.position = mesh.position;
+                    }
+                    else {
+                        this.arcCamera.target = mesh.position;
+                    }
+                }
+            }).add("dir", ({ camera }) => {
+                var _a, _b;
+                if (!camera)
+                    camera = this.scene.activeCamera;
+                let d = camera.getForwardRay().direction;
+                let mesh = ((_a = this.target) === null || _a === void 0 ? void 0 : _a.meshes) && ((_b = this.target) === null || _b === void 0 ? void 0 : _b.meshes[0]);
+                if (mesh instanceof BABYLON.Mesh) {
+                    mesh.lookAt(mesh.position.add(new BABYLON.Vector3(d.x, 0, d.z)));
+                }
+            });
+        }
+    }
+
+    class GameScene {
+        static createScene(engine, canvas) {
+            let scene = new GameScene();
+            scene.scene = createScene(engine);
+            var light2 = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(0, -0.5, -1.0), scene.scene);
+            light2.position = new BABYLON.Vector3(0, 5, 5);
+            // Shadows
+            var shadowGenerator = new BABYLON.ShadowGenerator(1024, light2);
+            shadowGenerator.useBlurExponentialShadowMap = true;
+            shadowGenerator.blurKernel = 32;
+            let player = new Player(scene.scene, canvas);
+            scene.player = player;
+            Human.createHuman(scene.scene).then(human => {
+                human.addShadow(shadowGenerator);
+                console.log("HUMAN:", human);
+                GLOABL.set("human", human);
+                player.setTarget(human).useThirdPersonCamera();
+            });
+            let escape = false;
+            canvas.addEventListener("keydown", e => {
+                if (e.code === "KeyF") ;
+                if (!escape && e.code === "Escape") {
+                    escape = true;
+                    if (player.usingFirstPersonCamera) {
+                        player.useThirdPersonCamera();
+                    }
+                    else {
+                        player.useFirstPersonCamera();
+                    }
+                }
+            });
+            canvas.addEventListener("keyup", e => {
+                if (e.code === "Escape") {
+                    escape = false;
+                }
+            });
+            return scene;
+        }
+        ;
+    }
+    function createBox(scene, { name, height = 1, width = 1, pos = [0, 0, 0], mass = 1, }) {
+        var box = BABYLON.MeshBuilder.CreateBox(name, {
+            height, width
+        }, scene);
+        box.position.set(pos[0], pos[1], pos[2]);
+        box.physicsImpostor = new BABYLON.PhysicsImpostor(box, BABYLON.PhysicsImpostor.BoxImpostor, {
+            mass, friction: 0.5, restitution: 0.7,
+        }, scene);
+        return box;
+    }
+    function createScene(engine) {
+        let scene = new BABYLON.Scene(engine);
+        scene.gravity = new BABYLON.Vector3(0, -9.81, 0);
+        scene.collisionsEnabled = true;
+        let physicsPlugin = new BABYLON.AmmoJSPlugin();
+        scene.enablePhysics(scene.gravity, physicsPlugin);
+        createBox(scene, {
+            name: "box1"
+        });
+        Humanoid.createHumanoid(scene);
+        let light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+        var helper = scene.createDefaultEnvironment({
+            enableGroundShadow: true
+        });
+        helper.setMainColor(BABYLON.Color3.Gray());
+        helper.ground.position.y += 0.01;
+        let sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {
+            diameter: 2
+        }, scene);
+        // sphere.checkCollisions = true;
+        sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.CylinderImpostor, {
+            mass: 10.0, friction: 1.0, restitution: 0
+        }, scene);
+        var ground = BABYLON.MeshBuilder.CreateGround("ground", {
+            height: 20, width: 20
+        }, scene);
+        ground.position.set(0, -5, 0);
+        ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, {
+            mass: 0, friction: 0.5, restitution: 0.7,
+        }, scene);
+        return scene;
+    }
+
     // import GameControl from "./GameControl";
     var engine;
     var scene;
@@ -840,99 +945,8 @@ var app = (function () {
         });
         engine.enableOfflineSupport = false;
         BABYLON.Animation.AllowMatricesInterpolation = true;
-        gameScene = GameScene.createScene(engine);
+        gameScene = GameScene.createScene(engine, canvas);
         scene = gameScene.scene;
-        let camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, 0), scene);
-        let arcCamera = new BABYLON.ArcRotateCamera("ArcCamera", 0, 0, 10, BABYLON.Vector3.Zero(), scene);
-        arcCamera.zoomOnFactor = 0.01;
-        arcCamera.lowerRadiusLimit = 0.01;
-        arcCamera.wheelPrecision = 50;
-        let getGameInput = () => new GameInput(canvas).add("key", obj => {
-            var _a, _b, _c;
-            let vec = processMovementVector(obj);
-            if (vec.x || vec.z) {
-                (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.beginWalk();
-            }
-            else {
-                (_b = gameScene.mainCharacter) === null || _b === void 0 ? void 0 : _b.beginIdle();
-            }
-            let mesh = (_c = gameScene.mainCharacter) === null || _c === void 0 ? void 0 : _c.meshes[0];
-            if (mesh) {
-                /*
-                mesh.applyImpulse();
-          
-                mesh.position = mesh.position.add(
-                    new BABYLON.Vector3(vec.x, 0, vec.z));
-                */
-                mesh.moveWithCollisions(vec.multiplyByFloats(1.0, 0, 1.0));
-                if (usingFreeCamera) {
-                    camera.position = mesh.position;
-                }
-                else {
-                    arcCamera.target = mesh.position;
-                }
-            }
-        }).add("dir", ({ camera }) => {
-            var _a;
-            if (!camera)
-                camera = scene.activeCamera;
-            let d = camera.getForwardRay().direction;
-            let a = (_a = gameScene.mainCharacter) === null || _a === void 0 ? void 0 : _a.meshes[0];
-            if (a) {
-                a.lookAt(a.position.add(new BABYLON.Vector3(d.x, 0, d.z)));
-            }
-        });
-        let usingFreeCamera = false;
-        let useFreeCamera = () => {
-            if (usingFreeCamera)
-                return;
-            arcCamera.detachControl(canvas);
-            arcCamera.inputs.removeByType("GameInput");
-            scene.activeCamera = camera;
-            camera.attachControl(canvas, true);
-            camera.inputs.add(getGameInput());
-            camera.setTarget(arcCamera.getForwardRay().direction.add(camera.position));
-            usingFreeCamera = true;
-        };
-        let useArcCamera = (force) => {
-            var _a;
-            if (!usingFreeCamera && !force)
-                return;
-            camera.detachControl(canvas);
-            camera.inputs.removeByType("GameInput");
-            scene.activeCamera = arcCamera;
-            arcCamera.attachControl(canvas, true);
-            (_a = arcCamera.inputs) === null || _a === void 0 ? void 0 : _a.add(getGameInput());
-            // arcCamera.position = camera.cameraDirection.scale(-arcCamera.radius);
-            // arcCamera.target = camera.position;
-            usingFreeCamera = false;
-        };
-        useArcCamera(true);
-        let escape = false;
-        canvas.addEventListener("keydown", e => {
-            if (e.code === "KeyF") {
-                if (usingFreeCamera) ;
-                else {
-                    // arcCamera.position.addInPlaceFromFloats(0, 1, 0);
-                    // arcCamera.setPosition(new BABYLON.Vector3(0, 0, -10));
-                    console.log(arcCamera.getTarget());
-                }
-            }
-            if (!escape && e.code === "Escape") {
-                escape = true;
-                if (usingFreeCamera) {
-                    useArcCamera();
-                }
-                else {
-                    useFreeCamera();
-                }
-            }
-        });
-        canvas.addEventListener("keyup", e => {
-            if (e.code === "Escape") {
-                escape = false;
-            }
-        });
         GameUI.createUI();
         engine.runRenderLoop(function () {
             GameRenderLoop(engine, scene);
