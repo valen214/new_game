@@ -73,7 +73,7 @@ export class Player
         this.getGameInput() as GameInput<BABYLON.ArcRotateCamera>);
 
     // arcCamera.position = camera.cameraDirection.scale(-arcCamera.radius);
-    // arcCamera.target = camera.position;
+    this.arcCamera.target = this.target.meshes[0];
 
     this.usingFirstPersonCamera = false;
   }
@@ -95,7 +95,7 @@ export class Player
         this.target.beginIdle();
       }
   
-      let mesh = this.target?.meshes && this.target?.meshes[0];
+      let mesh = this.target?.meshes && this.target?.meshes[0]?.parent;
       if(mesh instanceof BABYLON.AbstractMesh){
   
         /*
@@ -112,7 +112,8 @@ export class Player
           this.universalCamera.position = mesh.position;
         } else{
           this.arcCamera.position.addInPlaceFromFloats(vec.x, 0, vec.z);
-          this.arcCamera.target = mesh.position.add(new BABYLON.Vector3(0, 1.8, 0));
+          this.arcCamera.target = mesh.position.add(
+              new BABYLON.Vector3(0, 1.8, 0));
         }
       }
     }).add("dir", ({ camera }) => {

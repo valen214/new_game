@@ -2,11 +2,12 @@
 // import GameControl from "./GameControl";
 import GameUI from "./GameUI";
 import GameRenderLoop from "./GameRenderLoop";
-import * as GLOBAL from "./Global";
+import GLOBAL from "./Global";
 import { TestScene } from "./scenes/TestScene";
 import { SimpleFightScene } from "./scenes/SimpleFightScene";
 
 export var engine: BABYLON.Engine;
+export var scenes: BABYLON.Scene[] = [];
 export var scene: BABYLON.Scene;
 export var canvas: HTMLCanvasElement;
 
@@ -36,7 +37,7 @@ export async function startGame(_canvas: HTMLCanvasElement){
   
   BABYLON.Animation.AllowMatricesInterpolation = true;
   
-  scene = new TestScene(engine);
+  scene = new SimpleFightScene(engine);
   
 
   GameUI.createUI();
@@ -53,7 +54,7 @@ export async function startGame(_canvas: HTMLCanvasElement){
   game.engine = engine;
   game.scene = scene;
   game.canvas = canvas;
-  GLOBAL.setGame(game);
+  GLOBAL.set("game", game);
 
   return game;
 }

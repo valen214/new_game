@@ -2,7 +2,7 @@ import type { ISceneLoader } from "./ISceneLoader";
 import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
-import { GLOABL } from "../Global";
+import GLOABL from "../Global";
 import { Player } from "../GamePlayer";
 
 /*
@@ -62,20 +62,20 @@ implements ISceneLoader
     shadowGenerator.blurKernel = 32;
 
 
-    let root = new BABYLON.Mesh("ground_root", this);
-    var ground = BABYLON.MeshBuilder.CreateGround("ground", {
-      height: 20, width: 20
-    }, this);
-    ground.position.set(0, -10, 0);
-
-    // ground.setParent(root);
-    root.position = new BABYLON.Vector3(0, -5, 0);
+    let root = BABYLON.MeshBuilder.CreateBox("ground_root",
+      { width: 22, height: 10, depth: 22 }, this);
+    root.position.set(0, -15, 0);
     root.physicsImpostor = new BABYLON.PhysicsImpostor(
-      root, BABYLON.PhysicsImpostor.NoImpostor, {
+      root, BABYLON.PhysicsImpostor.BoxImpostor, {
         mass: 0
       }, this
     );
 
+
+    var ground = BABYLON.MeshBuilder.CreateGround("ground", {
+      height: 20, width: 20
+    }, this);
+    ground.position.set(0, -10, 0);
     ground.physicsImpostor = new BABYLON.PhysicsImpostor(
       ground, BABYLON.PhysicsImpostor.BoxImpostor, {
         mass: 0
@@ -88,27 +88,18 @@ implements ISceneLoader
 
     Human.createHuman(this).then(human => {
       human.addShadow(shadowGenerator);
-      console.log("HUMAN:", human);
       GLOABL.set("human", human);
 
       
       player.setTarget(human).useThirdPersonCamera();
 
-      window["setP"] = () => {
-
-        let parent = human.meshes[0].parent as BABYLON.AbstractMesh
-        parent.parent = root;
-        parent.physicsImpostor = new BABYLON.PhysicsImpostor(
-          parent, BABYLON.PhysicsImpostor.CylinderImpostor, {
-            mass: 1, friction: 0.5, restitution: 0.0,
-          }, this
-        );
-        human.meshes[0].physicsImpostor = new BABYLON.PhysicsImpostor(
-          human.meshes[0], BABYLON.PhysicsImpostor.CylinderImpostor, {
-            mass: 1, friction: 0.5, restitution: 0.0,
-          }, this
-        );
-      };
+      let parent = human.meshes[0].parent as BABYLON.AbstractMesh
+      let self = human.meshes[0];
+      parent.physicsImpostor = new BABYLON.PhysicsImpostor(
+        parent, BABYLON.PhysicsImpostor.SphereImpostor, {
+          mass: 1, friction: 0, restitution: 0.0,
+        }, this
+      );
 
     }).then(() => {
       let escape = false;

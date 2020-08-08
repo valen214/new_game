@@ -1,25 +1,21 @@
 
 
 
-
-export const GLOABL = new Map();
-Object.defineProperty(window, "GLOBAL", {
-  get(){
-    return GLOABL;
+namespace GLOBAL {
+  export function set(key: string, value: any){
+    window[key] = value;
+    console.log(`window[${key}]:`, value);
   }
-});
-
-
-
-export var game;
-
-export function setGame(_game){
-  game = _game;
-  GLOABL.set("game", game);
+  export function get(key: string){
+    return window[key];
+  }
+  
+  export var game;
+  
+  export function setGame(_game){
+    game = _game;
+    set("game", game);
+  }
 }
 
-Object.defineProperty(window, "game", {
-  get(){
-    return game;
-  }
-});
+export default GLOBAL;

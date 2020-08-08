@@ -2,7 +2,7 @@ import type { ISceneLoader } from "./ISceneLoader";
 import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
-import { GLOABL } from "../Global";
+import GLOABL from "../Global";
 import { Player } from "../GamePlayer";
 
 /*

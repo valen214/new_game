@@ -5,19 +5,7 @@
   
   export const show = writable(false);
 
-  let _game: Game;
-  export function printGame(){
-    console.table(
-      _game.scene.meshes.reduce((out, m) => {
-        out[m.id] = {
-          name: m.name,
-          pos: m.position.asArray().map(f => f.toFixed(4)).join(" ")
-        };
-        return out;
-      }, {})
-    );
-  }
-
+  
   export function close(){
     show.set(false);
   }
@@ -28,13 +16,49 @@
 
 <script>
   export let game;
-  game.subscribe(value => _game = value);
+
+
+  
+  $: meshes = $game?.scene.meshes;
+  $: gameInfo = meshes?.map((m) => {
+    return {
+      id: m.id,
+      name: m.name,
+      pos: m.position.asArray().map(f => f.toFixed(4)).join(" ")
+    };
+  });
+
+  
+  $: infoHeaders = gameInfo?.length && Object.keys(gameInfo[0]);
+
+  setInterval(() => {
+    meshes = $game?.scene.meshes.slice(0);
+  }, 1000);
 </script>
 
 {#if $show}
   <div class="gui-background">
     <div class="close" on:click={close}>&#x274C;</div>
-    <button on:click={printGame}>Print Game</button>
+    {#if gameInfo}
+      <table class="mesh-info-table">
+        <thead>
+          <tr>
+            {#each infoHeaders as header}
+              <th>{ header }</th>
+            {/each}
+          </tr>
+        </thead>
+        <tbody>
+          {#each gameInfo as info}
+            <tr class="mesh-entry">
+              {#each infoHeaders as key}
+                <td>{ info[key] }</td>
+              {/each}
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
   </div>
 {/if}
 
@@ -46,6 +70,15 @@
     position: absolute;
     top: 0;
     left: 0;
+  }
+
+  .mesh-info-table {
+    background: white;
+    padding: 15px;
+  }
+
+  .mesh-entry {
+    cursor: pointer;
   }
 
   .close {
