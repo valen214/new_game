@@ -44,20 +44,36 @@ implements ISceneLoader
     parent.showBoundingBox = true;
     mesh.showBoundingBox = true;
 
+    let indicator =  Common.createSphere(this, {
+      name: "human root indicator",
+      diameter: 0.5,
+    });
+    indicator.parent = parent;
+
     this.gameInput.add("key", obj => {
       if(!obj.camera) obj.camera = camera;
       let vec = processMovementVector(obj);
       
+      let vel = parent.physicsImpostor.getLinearVelocity();
       if(vec.x || vec.z){
         human.beginWalk();
+
+        if(vel.length() < 1){
+          vec = vec.multiplyByFloats(5.0, 0, 5.0);
+          parent.applyImpulse(vec, BABYLON.Vector3.Zero());
+        }
       } else{
-        // human.beginIdle();
+        human.beginIdle();
+        parent.applyImpulse(
+          vel.multiplyByFloats(-1.0, 0, -1.0),
+          BABYLON.Vector3.Zero()
+        );
       }
       
-      vec = vec.multiplyByFloats(1.0, 0, 1.0);
-      parent.position.addInPlace(vec);
-      // this.thirdPersonCamera.offset.position.addInPlace(vec);
 
+      //parent.position.addInPlace(vec);
+      // this.thirdPersonCamera.offset.position.addInPlace(vec);
+      // parent.physicsImpostor.setLinearVelocity(vec);
     }).add("dir", ({ camera }) => {
       if(!camera) camera = this.activeCamera;
       let d = camera.getForwardRay().direction;
@@ -129,8 +145,8 @@ implements ISceneLoader
 
       let parent = human.meshes[0].parent as BABYLON.AbstractMesh
       parent.physicsImpostor = new BABYLON.PhysicsImpostor(
-        parent, BABYLON.PhysicsImpostor.SphereImpostor, {
-          mass: 1, friction: 0, restitution: 0.0,
+        parent, BABYLON.PhysicsImpostor.BoxImpostor, {
+          mass: 10, friction: 0, restitution: 0.0,
         }, this
       );
       parent.position.set(3, 3, 3);
