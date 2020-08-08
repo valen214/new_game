@@ -25,18 +25,14 @@ export enum EVENT_TYPE {
  * type definition based on corresponding event
  */
 export type EVENT_LISTENER_ARGUMENT_TYPE = Partial<{
-  _this: GameInput<BABYLON.Camera>
+  _this: GameInput
   frameTime: number
   camera: BABYLON.Camera
   scene: BABYLON.Scene
   activeKeyAction: Set<KEY_ACTION>
 }>;
 
-/*
-drop ICameraInput later
-*/
-class GameInput <T extends BABYLON.Camera>
-implements BABYLON.ICameraInput<T>
+class GameInput
 {
   private listeners = new Map<EVENT_TYPE,
       ((arg0?: EVENT_LISTENER_ARGUMENT_TYPE) => void )[]>();
@@ -54,15 +50,17 @@ implements BABYLON.ICameraInput<T>
   private attached = false;
   private detached = false;
   private noPreventDefault: boolean;
+  public scene;
 
   public sensitivity = 5.0;
-  public camera: T;
   constructor(
     public canvas: HTMLCanvasElement,
-    public processMovement?: (vec: BABYLON.Vector3) => void
   ){}
 
   registerActionManager(scene: BABYLON.Scene){
+    this.attached = true;
+    this.scene = scene;
+
     let actionManager = new BABYLON.ActionManager(scene);
     scene.actionManager = actionManager;
 
@@ -85,7 +83,13 @@ implements BABYLON.ICameraInput<T>
       eventState: BABYLON.EventState
     ) => {
       this.checkInputs();
-    })
+    });
+
+    
+    BABYLON.Tools.RegisterTopRootEvents(
+      this.canvas as any, [
+      { name: "blur", handler: this.onBlur }
+    ]);
 
     return this;
   }
@@ -132,6 +136,7 @@ implements BABYLON.ICameraInput<T>
         "\n\tthis.canvas:", this.canvas);
 
     if(!this.attached){
+      console.log("attached");
       this.attached = true;
       this.noPreventDefault = noPreventDefault;
 
@@ -167,7 +172,7 @@ implements BABYLON.ICameraInput<T>
   add(
       type: string | EVENT_TYPE,
       listener: (arg0: EVENT_LISTENER_ARGUMENT_TYPE) => void
-  ): GameInput<T> {
+  ): GameInput {
     let _type: EVENT_TYPE;
     switch(type){
     case "dir":
@@ -194,11 +199,11 @@ implements BABYLON.ICameraInput<T>
   private lastCheck = performance.now();
   checkInputs(){
     if(!this.attached) return;
+    const camera = this.scene?.activeCamera;
 
     let frameTime = performance.now() - this.lastCheck;
     this.lastCheck = performance.now();
 
-    const camera = this.camera;
     
     let listeners = this.listeners.get(EVENT_TYPE.MOUSE);
     if(listeners?.length){
@@ -220,7 +225,6 @@ implements BABYLON.ICameraInput<T>
 
       for(let i = 0; i < listeners.length; ++i){
         listeners[i]({
-            camera,
             frameTime,
             activeKeyAction,
             _this: this,
@@ -236,6 +240,10 @@ export default GameInput;
 export function processMovementVector({
   activeKeyAction, frameTime, camera, _this
 }: EVENT_LISTENER_ARGUMENT_TYPE){
+  if(!camera){
+    console.error("cannot process movement vector without camera");
+    return;
+  }
   let dir = camera.getForwardRay().direction;
   let normal_dir = new BABYLON.Vector2(dir.x, dir.z).normalize();
   

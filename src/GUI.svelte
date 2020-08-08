@@ -31,6 +31,9 @@
   
   $: infoHeaders = gameInfo?.length && Object.keys(gameInfo[0]);
 
+  function printMesh(i){
+    console.log($game?.scene.meshes[i]);
+  }
   setInterval(() => {
     meshes = $game?.scene.meshes.slice(0);
   }, 1000);
@@ -49,8 +52,8 @@
           </tr>
         </thead>
         <tbody>
-          {#each gameInfo as info}
-            <tr class="mesh-entry">
+          {#each gameInfo as info, i}
+            <tr class="mesh-entry" on:click={() => printMesh(i)}>
               {#each infoHeaders as key}
                 <td>{ info[key] }</td>
               {/each}
@@ -79,6 +82,9 @@
 
   .mesh-entry {
     cursor: pointer;
+  }
+  .mesh-entry:hover {
+    background:rgba(255, 255, 255, 0.7);
   }
 
   .close {

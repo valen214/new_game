@@ -58,6 +58,7 @@ class Human
 
   beginWalk(){
     if(this.walkRange && this.state !== STATE.WALK){
+      console.log("BEGIN WALK");
       this.state = STATE.WALK;
       
       this.scene.beginAnimation(

@@ -3,7 +3,6 @@ import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
 import GLOABL from "../Global";
-import { Player } from "../GamePlayer";
 
 /*
 https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
@@ -16,8 +15,6 @@ export class TestScene
 extends BABYLON.Scene
 implements ISceneLoader
 {
-  public player?: Player;
-
   constructor(
       engine: BABYLON.Engine,
       options?: BABYLON.SceneOptions
@@ -66,44 +63,12 @@ implements ISceneLoader
     shadowGenerator.blurKernel = 32;
 
 
-
-    const player = new Player(this, canvas);
-    this.player = player;
-
     Human.createHuman(this).then(human => {
       human.addShadow(shadowGenerator);
       console.log("HUMAN:", human);
       GLOABL.set("human", human);
 
       
-      player.setTarget(human).useThirdPersonCamera();
-
-    }).then(() => {
-      let escape = false;
-      canvas.addEventListener("keydown", e => {
-        if(e.code === "KeyF"){
-          if(player.usingFirstPersonCamera){
-
-          } else{
-            // arcCamera.position.addInPlaceFromFloats(0, 1, 0);
-            // arcCamera.setPosition(new BABYLON.Vector3(0, 0, -10));
-          }
-        }
-        if(!escape && e.code === "Escape"){
-          escape = true;
-
-          if(player.usingFirstPersonCamera){
-            player.useThirdPersonCamera();
-          } else{
-            player.useFirstPersonCamera();
-          }
-        }
-      });
-      canvas.addEventListener("keyup", e => {
-        if(e.code === "Escape"){
-          escape = false;
-        }
-      });
     });
     
         

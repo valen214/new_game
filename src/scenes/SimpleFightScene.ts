@@ -3,7 +3,8 @@ import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
 import GLOABL from "../Global";
-import { Player } from "../GamePlayer";
+import { ThirdPersonCamera } from "../cameras/ThirdPersonCamera";
+import GameInput, { processMovementVector } from "../GameInput";
 
 /*
 https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
@@ -16,18 +17,58 @@ export class SimpleFightScene
 extends BABYLON.Scene
 implements ISceneLoader
 {
-  public player?: Player;
-
+  public gameInput: GameInput;
+  public thirdPersonCamera: ThirdPersonCamera;
   constructor(
       engine: BABYLON.Engine,
-      options?: BABYLON.SceneOptions
+      options?: BABYLON.SceneOptions,
+      gameInput?: GameInput
   ){
     super(engine, options);
+    this.gameInput = gameInput;
+    
+    this.thirdPersonCamera = new ThirdPersonCamera(
+      "3rd person camera", 0, 1.1123, 5, null, this);
+    this.thirdPersonCamera.attach().setOffset(0.5, 0.5, -0.2);
+
     this.load();
   }
 
+  setUpCamera(
+    human: Human
+  ){
+    const mesh = human.meshes[0];
+    const parent = mesh.parent as BABYLON.Mesh;
+    const camera = this.thirdPersonCamera;
+    this.thirdPersonCamera.offset.parent = mesh;
+    parent.showBoundingBox = true;
+    mesh.showBoundingBox = true;
+
+    this.gameInput.add("key", obj => {
+      if(!obj.camera) obj.camera = camera;
+      let vec = processMovementVector(obj);
+      
+      if(vec.x || vec.z){
+        human.beginWalk();
+      } else{
+        // human.beginIdle();
+      }
+      
+      vec = vec.multiplyByFloats(1.0, 0, 1.0);
+      parent.position.addInPlace(vec);
+      // this.thirdPersonCamera.offset.position.addInPlace(vec);
+
+    }).add("dir", ({ camera }) => {
+      if(!camera) camera = this.activeCamera;
+      let d = camera.getForwardRay().direction;
+      let mesh = human.meshes[0];
+      mesh.lookAt(mesh.position.add(
+          new BABYLON.Vector3(d.x, 0, d.z)));
+    });
+  }
+
   load(){
-    const canvas = this.getEngine().getRenderingCanvas();
+    this.activeCamera = this.thirdPersonCamera;
 
     this.collisionsEnabled = true;
     this.enablePhysics(
@@ -43,7 +84,7 @@ implements ISceneLoader
     });
 
     
-    Humanoid.createHumanoid(this);
+    Humanoid.createHumanoid(this)
 
     
     let light = new BABYLON.HemisphericLight(
@@ -82,51 +123,19 @@ implements ISceneLoader
       }, this
     );
 
-
-    const player = new Player(this, canvas);
-    this.player = player;
-
     Human.createHuman(this).then(human => {
       human.addShadow(shadowGenerator);
       GLOABL.set("human", human);
 
-      
-      player.setTarget(human).useThirdPersonCamera();
-
       let parent = human.meshes[0].parent as BABYLON.AbstractMesh
-      let self = human.meshes[0];
       parent.physicsImpostor = new BABYLON.PhysicsImpostor(
         parent, BABYLON.PhysicsImpostor.SphereImpostor, {
           mass: 1, friction: 0, restitution: 0.0,
         }, this
       );
+      parent.position.set(3, 3, 3);
 
-    }).then(() => {
-      let escape = false;
-      canvas.addEventListener("keydown", e => {
-        if(e.code === "KeyF"){
-          if(player.usingFirstPersonCamera){
-
-          } else{
-            // arcCamera.position.addInPlaceFromFloats(0, 1, 0);
-            // arcCamera.setPosition(new BABYLON.Vector3(0, 0, -10));
-          }
-        }
-        if(!escape && e.code === "Escape"){
-          escape = true;
-
-          if(player.usingFirstPersonCamera){
-            player.useThirdPersonCamera();
-          } else{
-            player.useFirstPersonCamera();
-          }
-        }
-      });
-      canvas.addEventListener("keyup", e => {
-        if(e.code === "Escape"){
-          escape = false;
-        }
-      });
+      this.setUpCamera(human);
     });
     
 
