@@ -2,9 +2,7 @@
 export class ThirdPersonCamera
 extends BABYLON.ArcRotateCamera
 {
-  public offset: BABYLON.Mesh = new BABYLON.Mesh(
-      "3rd person camera offset"
-  );
+  public offset: BABYLON.Mesh;
 
   public onKey: () => void;
   public onMouse: () => void;
@@ -22,6 +20,9 @@ extends BABYLON.ArcRotateCamera
       name, alpha, beta, radius, target,
       scene, setActiveOnSceneIfNoneActive
     );
+    this.offset  = new BABYLON.Mesh(
+        "3rd person camera offset"
+    );
 
     // scene.addMesh(this.offset);
     this.setTarget(this.offset);
@@ -34,6 +35,7 @@ extends BABYLON.ArcRotateCamera
   
   attach(){
     const canvas = this.getEngine().getRenderingCanvas();
+    console.log("camera attach, canvas:", canvas);
     this.attachControl(canvas, true);
 
     return this;

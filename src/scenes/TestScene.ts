@@ -20,14 +20,12 @@ implements ISceneLoader
       options?: BABYLON.SceneOptions
   ){
     super(engine, options);
-    this.load();
-
     
     this.getEngine();
     BABYLON.SceneLoader
   }
 
-  load(){
+  async init(): Promise<TestScene> {
     const canvas = this.getEngine().getRenderingCanvas();
 
     this.gravity = new BABYLON.Vector3(0, -9.81, 0);
@@ -101,5 +99,7 @@ implements ISceneLoader
         mass: 0, friction: 0.5, restitution: 0.7,
       }, this
     );
+
+    return this;
   }
 }

@@ -93,19 +93,6 @@ class GameInput
 
     return this;
   }
-
-  getClassName(): string {
-    return "GameInput";
-  }
-
-  getTypeName(){
-    return "GameInput";
-  }
-
-  getSimpleName(){
-    return "GameInput";
-  }
-
   private onKeyDown = (e: KeyboardEvent) => {
     let k = toKeyCode(e);
     if(k) this.pressed.add(k);
@@ -124,34 +111,6 @@ class GameInput
     this.pressed.clear();
   };
 
-  attachControl(
-      element: HTMLElement,
-      noPreventDefault: boolean
-  ){
-    console.assert(element === this.canvas,
-        "GameInput.ts:",
-        "attachControl():",
-        "attached canvas is different from given canvas",
-        "\n\telem:", element,
-        "\n\tthis.canvas:", this.canvas);
-
-    if(!this.attached){
-      console.log("attached");
-      this.attached = true;
-      this.noPreventDefault = noPreventDefault;
-
-      element.tabIndex = 1;
-      element.addEventListener("keydown", this.onKeyDown, false);
-      element.addEventListener("keyup", this.onKeyUp, false);
-    
-      this.checkInputs();
-
-      BABYLON.Tools.RegisterTopRootEvents(
-        this.canvas as any, [
-        { name: "blur", handler: this.onBlur }
-      ]);
-    }
-  };
 
   detachControl(element: HTMLElement){
     if(this.attached){

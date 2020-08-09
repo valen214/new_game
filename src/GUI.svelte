@@ -19,7 +19,7 @@
 
 
   
-  $: meshes = $game?.scene.meshes;
+  $: meshes = $game?.scene?.meshes;
   $: gameInfo = meshes?.map((m) => {
     return {
       id: m.id,
@@ -32,10 +32,12 @@
   $: infoHeaders = gameInfo?.length && Object.keys(gameInfo[0]);
 
   function printMesh(i){
-    console.log($game?.scene.meshes[i]);
+    if(meshes){
+      console.log(meshes[i]);
+    }
   }
   setInterval(() => {
-    meshes = $game?.scene.meshes.slice(0);
+    meshes = $game?.scene?.meshes?.slice(0);
   }, 1000);
 </script>
 

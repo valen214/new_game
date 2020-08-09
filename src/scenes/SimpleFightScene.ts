@@ -10,6 +10,15 @@ import GameInput, { processMovementVector } from "../GameInput";
 https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
 jsdelivr
 
+  // Shift+Ctrl+Alt+I
+  if (e.shiftKey && e.ctrlKey &&
+      e.altKey && e.keyCode === 73) {
+    if (scene.debugLayer.isVisible()) {
+      scene.debugLayer.hide();
+    } else {
+      scene.debugLayer.show();
+    }
+  }
 */
 
 
@@ -28,10 +37,15 @@ implements ISceneLoader
     this.gameInput = gameInput;
     
     this.thirdPersonCamera = new ThirdPersonCamera(
-      "3rd person camera", 0, 1.1123, 5, null, this);
+      "3rd person camera", 0, 1.1123, 5,
+      BABYLON.Vector3.Zero(), this);
     this.thirdPersonCamera.attach().setOffset(0.5, 0.5, -0.2);
+  }
 
-    this.load();
+  attachControl(...args){
+    if(!args) args = [];
+    BABYLON.Scene.prototype.attachControl.apply(this, args);
+    console.log("scene attach control:", ...args);
   }
 
   setUpCamera(
@@ -83,7 +97,7 @@ implements ISceneLoader
     });
   }
 
-  load(){
+  async init(): Promise<SimpleFightScene>{
     this.activeCamera = this.thirdPersonCamera;
 
     this.collisionsEnabled = true;
@@ -168,5 +182,7 @@ implements ISceneLoader
     })
     sphere.setParent(root);
     sphere.checkCollisions = true;
+
+    return this;
   }
 }

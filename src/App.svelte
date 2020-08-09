@@ -10,7 +10,7 @@
   export let name;
 
   import GUI, { show } from "./GUI.svelte";
-  import { startGame, getFps } from "./Game";
+  import { startGame } from "./Game";
   import { scriptLoadPromise } from "./BabylonJSLoader.svelte";
   import { tick } from "svelte";
 
@@ -39,7 +39,7 @@
     $game = await startGame(canvas);
 
     setInterval(() => {
-      fps = getFps() || "";
+      fps = $game.getFps() || "";
     }, 500);
   });
 
