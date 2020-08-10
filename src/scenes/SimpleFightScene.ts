@@ -1,10 +1,11 @@
-import type { ISceneLoader } from "./ISceneLoader";
+import type { IScene } from "./IScene";
 import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
 import GLOABL from "../Global";
 import { ThirdPersonCamera } from "../cameras/ThirdPersonCamera";
 import GameInput, { processMovementVector } from "../GameInput";
+import type Game from "../Game";
 
 /*
 https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
@@ -24,28 +25,53 @@ jsdelivr
 
 export class SimpleFightScene
 extends BABYLON.Scene
-implements ISceneLoader
+implements IScene
 {
-  public gameInput: GameInput;
+  public canvas: HTMLCanvasElement;
+  public gameInput: GameInput = new GameInput();
   public thirdPersonCamera: ThirdPersonCamera;
   constructor(
       engine: BABYLON.Engine,
       options?: BABYLON.SceneOptions,
-      gameInput?: GameInput
   ){
     super(engine, options);
-    this.gameInput = gameInput;
+
+    console.log("post super");
+
+    this.canvas = this.getEngine().getRenderingCanvas();
+
     
     this.thirdPersonCamera = new ThirdPersonCamera(
-      "3rd person camera", 0, 1.1123, 5,
-      BABYLON.Vector3.Zero(), this);
-    this.thirdPersonCamera.attach().setOffset(0.5, 0.5, -0.2);
+      "3rd person camera", 0, 1.1123, 5, null, this);
+    this.thirdPersonCamera.attach().setOffset(0.5, 1.5, -0.2);
   }
 
-  attachControl(...args){
-    if(!args) args = [];
-    BABYLON.Scene.prototype.attachControl.apply(this, args);
-    console.log("scene attach control:", ...args);
+  addEventListeners(){
+    console.log("SimpleFightScene attach control", this);
+    this.gameInput.addEventListeners(this.canvas);
+  }
+
+  removeEventListeners(){
+    this.gameInput.removeEventListeners(this.canvas);
+  }
+
+  render(){
+    this.gameInput.checkInputs();
+    
+    const camera = this.thirdPersonCamera;  
+    let d = camera.getForwardRay().direction;
+    let cameraOffsetX = 0.3;
+    let cameraOffsetZ = 0.0;
+    d = d.multiplyByFloats(1.0, 0, 1.0).normalize();
+    if(camera instanceof ThirdPersonCamera){
+      camera.setOffset(
+        cameraOffsetZ * d.x + cameraOffsetX * d.z,
+        1.8,
+        cameraOffsetZ * d.z - cameraOffsetX * d.x
+      );
+    }
+
+    BABYLON.Scene.prototype.render.call(this);
   }
 
   setUpCamera(
@@ -54,7 +80,7 @@ implements ISceneLoader
     const mesh = human.meshes[0];
     const parent = mesh.parent as BABYLON.Mesh;
     const camera = this.thirdPersonCamera;
-    this.thirdPersonCamera.offset.parent = mesh;
+    this.thirdPersonCamera.offset.parent = parent;
     parent.showBoundingBox = true;
     mesh.showBoundingBox = true;
 
@@ -68,15 +94,22 @@ implements ISceneLoader
       if(!obj.camera) obj.camera = camera;
       let vec = processMovementVector(obj);
       
-      let vel = parent.physicsImpostor.getLinearVelocity();
       if(vec.x || vec.z){
-        human.beginWalk();
+        vec = vec.multiplyByFloats(100.0, 0, 100.0);
+        // parent.physicsImpostor.setLinearVelocity(vec);
 
-        if(vel.length() < 1){
-          vec = vec.multiplyByFloats(5.0, 0, 5.0);
-          parent.applyImpulse(vec, BABYLON.Vector3.Zero());
+        parent.physicsImpostor.setLinearVelocity(vec);
+        let vel = parent.physicsImpostor.getLinearVelocity();
+        if(vel.length() < 3){
+          human.beginWalk();
+          // vel = vel.multiplyByFloats(-1.0, 0, -1.0);
+          // parent.applyImpulse(vec, BABYLON.Vector3.Zero());
+        } else if(vel.length() < 6){
+          human.beginRun();
+          // parent.applyImpulse(vec, BABYLON.Vector3.Zero());
         }
       } else{
+        let vel = parent.physicsImpostor.getLinearVelocity();
         human.beginIdle();
         parent.applyImpulse(
           vel.multiplyByFloats(-1.0, 0, -1.0),
@@ -88,13 +121,13 @@ implements ISceneLoader
       //parent.position.addInPlace(vec);
       // this.thirdPersonCamera.offset.position.addInPlace(vec);
       // parent.physicsImpostor.setLinearVelocity(vec);
-    }).add("dir", ({ camera }) => {
-      if(!camera) camera = this.activeCamera;
+    })
+    
+    this.onBeforeRenderObservable.add(() => {
       let d = camera.getForwardRay().direction;
       let mesh = human.meshes[0];
-      mesh.lookAt(mesh.position.add(
-          new BABYLON.Vector3(d.x, 0, d.z)));
-    });
+      mesh.lookAt(new BABYLON.Vector3(d.x, 0, d.z));
+    })
   }
 
   async init(): Promise<SimpleFightScene>{
@@ -133,18 +166,10 @@ implements ISceneLoader
     shadowGenerator.blurKernel = 32;
 
 
-    let root = BABYLON.MeshBuilder.CreateBox("ground_root",
-      { width: 22, height: 10, depth: 22 }, this);
-    root.position.set(0, -15, 0);
-    root.physicsImpostor = new BABYLON.PhysicsImpostor(
-      root, BABYLON.PhysicsImpostor.BoxImpostor, {
-        mass: 0
-      }, this
-    );
 
 
-    var ground = BABYLON.MeshBuilder.CreateGround("ground", {
-      height: 20, width: 20
+    var ground = BABYLON.MeshBuilder.CreateBox("ground", {
+      height: 5, width: 100, depth: 100
     }, this);
     ground.position.set(0, -10, 0);
     ground.physicsImpostor = new BABYLON.PhysicsImpostor(
@@ -165,6 +190,13 @@ implements ISceneLoader
       );
       parent.position.set(3, 3, 3);
 
+      let mesh = human.meshes[0];
+      mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+        mesh, BABYLON.PhysicsImpostor.BoxImpostor, {
+          mass: 10, friction: 0, restitution: 0.0,
+        }, this
+      );
+
       this.setUpCamera(human);
     });
     
@@ -180,7 +212,7 @@ implements ISceneLoader
         restitution: 0,
       }
     })
-    sphere.setParent(root);
+    // sphere.setParent(root);
     sphere.checkCollisions = true;
 
     return this;

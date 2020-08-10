@@ -1,4 +1,4 @@
-import type { ISceneLoader } from "./ISceneLoader";
+import type { IScene } from "./IScene";
 import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
@@ -13,7 +13,7 @@ jsdelivr
 
 export class TestScene
 extends BABYLON.Scene
-implements ISceneLoader
+implements IScene
 {
   constructor(
       engine: BABYLON.Engine,
@@ -22,7 +22,13 @@ implements ISceneLoader
     super(engine, options);
     
     this.getEngine();
-    BABYLON.SceneLoader
+  }
+
+  addEventListeners(){
+
+  }
+  removeEventListeners(){
+    
   }
 
   async init(): Promise<TestScene> {

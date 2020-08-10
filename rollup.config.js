@@ -5,6 +5,7 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import preprocess from 'svelte-preprocess';
 import typescript from '@rollup/plugin-typescript';
+// import serve from "rollup-plugin-serve";
 
 import { transformSync } from "esbuild";
 
@@ -85,7 +86,10 @@ export default {
 
 		// In dev mode, call `npm run start` once
 		// the bundle has been generated
-		!production && serve(),
+		!production && serve({
+      contentBase: [ "dist" ],
+      port: 5000,
+    }),
 
 		// Watch the `dist` directory and refresh the
 		// browser on changes when not in production

@@ -1,17 +1,17 @@
 
 // import GameControl from "./GameControl";
-import GameUI from "./GameUI";
-import GameRenderLoop from "./GameRenderLoop";
 import GLOBAL from "./Global";
 import { TestScene } from "./scenes/TestScene";
 import { SimpleFightScene } from "./scenes/SimpleFightScene";
-import GameInput from "./GameInput";
+import type { IScene } from "./scenes/IScene";
+
+declare type _Scene = BABYLON.Scene & IScene;
 
 class Game
 {
   engine: BABYLON.Engine;
   scenes: BABYLON.Scene[] = [];
-  activeScene: BABYLON.Scene;
+  private _activeScene: _Scene;
   canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement){
@@ -37,9 +37,18 @@ class Game
 
   }
 
+  get activeScene(){
+    return this._activeScene;
+  }
+  set activeScene(value: _Scene){
+    if(this._activeScene){
+      this._activeScene.removeEventListeners();
+    }
+    this._activeScene = value;
+    this._activeScene.addEventListeners();
+  }
   async initScenes(){
     let scene1 = new SimpleFightScene(this.engine);
-    // scene1.attachControl()
     await scene1.init();
 
     this.activeScene = scene1;

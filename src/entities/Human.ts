@@ -6,6 +6,14 @@ enum STATE {
   RUN,
 }
 
+/*
+
+blending animation
+
+https://www.babylonjs-playground.com/#BCU1XR
+
+
+*/
 class Human
 {
 

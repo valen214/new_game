@@ -25,7 +25,7 @@ extends BABYLON.ArcRotateCamera
     );
 
     // scene.addMesh(this.offset);
-    this.setTarget(this.offset);
+    this.parent = this.offset;
     
     this.zoomOnFactor = 0.01;
     this.lowerRadiusLimit = 0.001;

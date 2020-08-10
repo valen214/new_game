@@ -51,15 +51,15 @@ class GameInput
   private detached = false;
   private noPreventDefault: boolean;
   public scene;
+  public canvas: HTMLCanvasElement;
 
   public sensitivity = 5.0;
-  constructor(
-    public canvas: HTMLCanvasElement,
-  ){}
+  constructor(){}
 
   registerActionManager(scene: BABYLON.Scene){
     this.attached = true;
     this.scene = scene;
+    const canvas = scene.getEngine().getRenderingCanvas();
 
     let actionManager = new BABYLON.ActionManager(scene);
     scene.actionManager = actionManager;
@@ -87,7 +87,7 @@ class GameInput
 
     
     BABYLON.Tools.RegisterTopRootEvents(
-      this.canvas as any, [
+      canvas as any, [
       { name: "blur", handler: this.onBlur }
     ]);
 
@@ -111,21 +111,34 @@ class GameInput
     this.pressed.clear();
   };
 
+  addEventListeners(element: HTMLElement){
+    this.attached = true;
 
-  detachControl(element: HTMLElement){
-    if(this.attached){
-      element.removeEventListener("keydown", this.onKeyDown);
-      element.removeEventListener("keyup", this.onKeyUp);
+    element.addEventListener("keydown", this.onKeyDown);
+    element.addEventListener("keyup", this.onKeyUp);
+    
+    BABYLON.Tools.RegisterTopRootEvents(
+      element as any, [
+      { name: "blur", handler: this.onBlur }
+    ]);
 
-      BABYLON.Tools.UnregisterTopRootEvents(
-        this.canvas as any, [
-        { name: "blur", handler: this.onBlur }
-      ]);
+    this.listeners.clear();
+    this.pressed.clear();
+  }
 
-      this.listeners.clear();
-      this.pressed.clear();
-      this.attached = false;
-    }
+  removeEventListeners(element: HTMLElement){
+    this.attached = false;
+
+    element.removeEventListener("keydown", this.onKeyDown);
+    element.removeEventListener("keyup", this.onKeyUp);
+
+    BABYLON.Tools.UnregisterTopRootEvents(
+      element as any, [
+      { name: "blur", handler: this.onBlur }
+    ]);
+
+    this.listeners.clear();
+    this.pressed.clear();
   }
 
   add(
@@ -135,6 +148,7 @@ class GameInput
     let _type: EVENT_TYPE;
     switch(type){
     case "dir":
+    case "mouse":
       _type = EVENT_TYPE.MOUSE;
       break;
     case "key":
