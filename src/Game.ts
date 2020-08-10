@@ -34,6 +34,15 @@ class Game
       _this.engine?.resize();
     });
 
+    canvas.addEventListener("keydown", e => {
+      if(e.code === "KeyI"){
+        if(this._activeScene?.debugLayer.isVisible()){
+          this._activeScene?.debugLayer.hide();
+        } else{
+          this._activeScene?.debugLayer.show();
+        }
+      }
+    });
 
   }
 

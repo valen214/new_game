@@ -8,7 +8,7 @@ export class KEY_CODE
   /**
    * TODO: handle duplicate problem
    */
-  static TO_KEYCODE = new Map<string | number, KEY_CODE>();
+  static STRING_TO_KEYCODE = new Map<string | number, KEY_CODE>();
 
 
   protected constructor(
@@ -18,22 +18,32 @@ export class KEY_CODE
     public which?: number, // deprecated
   ){
     [code, keyCode, key, which].filter(k => !!k).forEach(e => {
-      KEY_CODE.TO_KEYCODE.set(e, this);
+      KEY_CODE.STRING_TO_KEYCODE.set(e, this);
     });
   }
 
-  static getUnknownKeyCode(e: KeyboardEvent){
-    let list = [e.code, e.keyCode, e.key, e.which];
-    for(let k of list){
-      if(KEY_CODE.TO_KEYCODE.has(k)){
-        console.warn(`KeyCode.ts: getUnknownKeyCode():`,
-            `KeyCode(${k}) is found,`, "please use toKeyCode()");
-        return KEY_CODE.TO_KEYCODE.get(k);
-      }
+  static getKeyCode(e: KeyboardEvent | string | number){
+    let out = null;
+    if(e instanceof KeyboardEvent){
+      out = (
+          KEY_CODE.STRING_TO_KEYCODE.get(e.code) ||
+          KEY_CODE.STRING_TO_KEYCODE.get(e.keyCode) ||
+          KEY_CODE.STRING_TO_KEYCODE.get(e.key) ||
+          KEY_CODE.STRING_TO_KEYCODE.get(e.which)
+      );
+    } else{
+      out = KEY_CODE.STRING_TO_KEYCODE.get(e);
     }
+    if(out) return out;
 
-    let kc = new KEY_CODE(e.code, e.keyCode, e.key, e.which);
-    return kc;
+    if(e instanceof KeyboardEvent){
+      out = new KEY_CODE(e.code, e.keyCode, e.key, e.which);
+    } else{
+      return new KEY_CODE(
+          typeof e === "string" ? e : null,
+          typeof e === "number" ? e : null);
+    }
+    return out;
   }
 
   static A = new KEY_CODE("KeyA", 63);
@@ -46,11 +56,4 @@ export class KEY_CODE
   static SPACE = new KEY_CODE("Space", 32, " ");
 };
 
-export function toKeyCode(e: KeyboardEvent): KEY_CODE {
-  return (
-      KEY_CODE.TO_KEYCODE.get(e.code) ||
-      KEY_CODE.TO_KEYCODE.get(e.keyCode) ||
-      KEY_CODE.TO_KEYCODE.get(e.key) ||
-      KEY_CODE.TO_KEYCODE.get(e.which)
-  ) || KEY_CODE.getUnknownKeyCode(e);
-}
+export const toKeyCode = KEY_CODE.getKeyCode;

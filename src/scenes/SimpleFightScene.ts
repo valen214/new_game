@@ -1,11 +1,13 @@
+
+
 import type { IScene } from "./IScene";
+import type Game from "../Game";
 import Common from "../entities/Common";
 import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
 import GLOABL from "../Global";
 import { ThirdPersonCamera } from "../cameras/ThirdPersonCamera";
 import GameInput, { processMovementVector } from "../GameInput";
-import type Game from "../Game";
 
 /*
 https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
@@ -43,16 +45,89 @@ implements IScene
     
     this.thirdPersonCamera = new ThirdPersonCamera(
       "3rd person camera", 0, 1.1123, 5, null, this);
-    this.thirdPersonCamera.attach().setOffset(0.5, 1.5, -0.2);
   }
 
   addEventListeners(){
     console.log("SimpleFightScene attach control", this);
     this.gameInput.addEventListeners(this.canvas);
+
+    /*
+    https://doc.babylonjs.com/api/classes/babylon.pointereventtypes
+
+    the event doesn't have own properties
+
+    might add support to pointer state like pressure
+
+
+    useful keys:
+    
+    let data = [
+        "buttons", "button", "which", "type",
+        "isPrimary", "pointerId", "pointerType"
+    ].reduce((out, key) => {
+      out[key] = e[key];
+      return out;
+    }, {});
+    */
+
+    let buttons = 0;
+    let shoot = false;
+    let last_shot = performance.now();
+    this.onPointerObservable.add(({
+        type,
+        event: e,
+    }: BABYLON.PointerInfo) => {
+      switch(type){
+      case BABYLON.PointerEventTypes.POINTERDOWN:
+        buttons = e.buttons;
+        if(buttons & 0x02){
+          shoot = true;
+        }
+        break;
+			case BABYLON.PointerEventTypes.POINTERMOVE:
+        buttons = e.buttons;
+        if(buttons & 0x02){
+          shoot = true;
+          console.log("shoot!");
+        }
+        break;
+      case BABYLON.PointerEventTypes.POINTERUP:
+        buttons = e.buttons;
+        console.assert(buttons === 0,
+            "e.buttons is not zero on pointer up", e);
+        break;
+      }
+    });
+
+    this.onBeforeRenderObservable.add((e) => {
+      if(shoot && performance.now() - last_shot > 500){
+        shoot = false;
+        last_shot = performance.now();
+        console.assert(e === this);
+
+        // BABYLON.MeshBuilder.CreateSphere, like why?
+        let bullet = Common.createSphere(this, {
+          name: "bullet",
+          pos: this.activeCamera.globalPosition.asArray(),
+          diameter: 0.5,
+          physics: {
+            mass: 0.5
+          }
+        });
+        
+        bullet.physicsImpostor.setLinearVelocity(
+            this.activeCamera.getForwardRay().direction.scale(10.0));
+        setTimeout(() => {
+          bullet.dispose();
+        }, 200)
+      }
+    });
   }
 
   removeEventListeners(){
     this.gameInput.removeEventListeners(this.canvas);
+
+    this.onPointerObservable.clear();
   }
 
   render(){
@@ -80,7 +155,16 @@ implements IScene
     const mesh = human.meshes[0];
     const parent = mesh.parent as BABYLON.Mesh;
     const camera = this.thirdPersonCamera;
-    this.thirdPersonCamera.offset.parent = parent;
+
+
+    camera.offset.parent = parent;
+    (camera.inputs.attached.pointers as
+        BABYLON.ArcRotateCameraPointersInput).buttons = [0];
+    camera.inputs.remove(camera.inputs.attached.keyboard);
+    camera.attach().setOffset(0.5, 1.5, -0.2);
+
+
+
     parent.showBoundingBox = true;
     mesh.showBoundingBox = true;
 
@@ -90,7 +174,7 @@ implements IScene
     });
     indicator.parent = parent;
 
-    this.gameInput.add("key", obj => {
+    this.gameInput.on("key", obj => {
       if(!obj.camera) obj.camera = camera;
       let vec = processMovementVector(obj);
       

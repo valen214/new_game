@@ -3,19 +3,37 @@
 /*
 Object.fromEntries:
 https://github.com/microsoft/TypeScript/issues/30933
+
+
+
+
+MARK FOR REPLACEMENT BY Observables + observer mask
+
+
+
+
+
+
+
 */
 
 import { KEY_CODE, toKeyCode } from "./KeyCode";
 
-export enum KEY_ACTION {
-  LEFT,
-  RIGHT,
-  FORWARD,
-  BACK,
-  DOWN,
-  UP
-}
+export class KEY_ACTION
+{
+  constructor(
+    public name?: string,
+  ){
+    
+  }
 
+  static LEFT = new KEY_ACTION();
+  static RIGHT = new KEY_ACTION();
+  static FORWARD = new KEY_ACTION();
+  static BACK = new KEY_ACTION();
+  static DOWN = new KEY_ACTION();
+  static UP = new KEY_ACTION();
+}
 
 export enum EVENT_TYPE {
   KEY = "key", MOUSE = "mouse",
@@ -45,7 +63,7 @@ class GameInput
     [KEY_ACTION.BACK, new Set([ KEY_CODE.S ])],
     [KEY_ACTION.DOWN, new Set([ KEY_CODE.LCTRL ])],
     [KEY_ACTION.UP, new Set([ KEY_CODE.SPACE ])],
-  ])
+  ]);
 
   private attached = false;
   private detached = false;
@@ -55,6 +73,13 @@ class GameInput
 
   public sensitivity = 5.0;
   constructor(){}
+
+  registerKeyMap(action_name: string, ...args: KEY_CODE[]){
+    this.keyMap.set(new KEY_ACTION(action_name), new Set(args));
+  }
+  registerPointer(){
+
+  }
 
   registerActionManager(scene: BABYLON.Scene){
     this.attached = true;
@@ -132,6 +157,7 @@ class GameInput
     element.removeEventListener("keydown", this.onKeyDown);
     element.removeEventListener("keyup", this.onKeyUp);
 
+
     BABYLON.Tools.UnregisterTopRootEvents(
       element as any, [
       { name: "blur", handler: this.onBlur }
@@ -141,7 +167,7 @@ class GameInput
     this.pressed.clear();
   }
 
-  add(
+  on(
       type: string | EVENT_TYPE,
       listener: (arg0: EVENT_LISTENER_ARGUMENT_TYPE) => void
   ): GameInput {
