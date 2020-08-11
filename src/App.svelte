@@ -44,6 +44,7 @@
   });
 
   show.subscribe(value => {
+    if($game) $game.paused = value;
     if(value){
 
     } else{

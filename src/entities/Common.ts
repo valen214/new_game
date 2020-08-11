@@ -6,12 +6,14 @@ namespace Common {
     name,
     height = 1,
     width = 1,
+    depth = 1,
     pos = [0, 0, 0],
     physics = null
   }: {
     name: string
     height?: number
     width?: number
+    depth?: number
     pos?: number[]
   
     physics?: BABYLON.PhysicsImpostorParameters & {
@@ -19,7 +21,7 @@ namespace Common {
     }
   }){
     var box = BABYLON.MeshBuilder.CreateBox(name, {
-      height, width
+      height, width, depth
     }, scene);
     box.position.set(pos[0], pos[1], pos[2]);
     if(physics){

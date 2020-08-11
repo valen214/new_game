@@ -14,6 +14,9 @@ class Game
   private _activeScene: _Scene;
   canvas: HTMLCanvasElement;
 
+
+  paused = false;
+
   constructor(canvas: HTMLCanvasElement){
     this.canvas = canvas;
     this.engine = new BABYLON.Engine(canvas, true, {
@@ -65,7 +68,11 @@ class Game
 
   async start(){
     this.engine.runRenderLoop(() => {
-      this.activeScene?.render();
+      if(this.paused){
+
+      } else{
+        this.activeScene?.render();
+      }
     });
   }
 

@@ -119,7 +119,7 @@ implements IScene
             this.activeCamera.getForwardRay().direction.scale(10.0));
         setTimeout(() => {
           bullet.dispose();
-        }, 200)
+        }, 1000)
       }
     });
   }
@@ -153,7 +153,7 @@ implements IScene
     human: Human
   ){
     const mesh = human.meshes[0];
-    const parent = mesh.parent as BABYLON.Mesh;
+    const parent = mesh.parent.parent as BABYLON.Mesh;
     const camera = this.thirdPersonCamera;
 
 
@@ -212,6 +212,16 @@ implements IScene
       let mesh = human.meshes[0];
       mesh.lookAt(new BABYLON.Vector3(d.x, 0, d.z));
     })
+
+    this.onBeforePhysicsObservable.add(() => {
+      // mesh.physicsImpostor?.setAngularVelocity(BABYLON.Vector3.Zero());
+      // parent.physicsImpostor?.setAngularVelocity(BABYLON.Vector3.Zero());
+      mesh.position = new BABYLON.Vector3(0, 3, 0);
+      let quad = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(0, 1, 0), 0)
+      parent.rotationQuaternion = quad;
+      // @ts-ignore
+      parent.physicsImpostor.setAngularVelocity(quad);
+    });
   }
 
   async init(): Promise<SimpleFightScene>{
@@ -266,20 +276,34 @@ implements IScene
       human.addShadow(shadowGenerator);
       GLOABL.set("human", human);
 
+
+      let mesh = human.meshes[0];
+      mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+        mesh, BABYLON.PhysicsImpostor.CylinderImpostor, {
+          mass: 1000, friction: 0, restitution: 0.0,
+        }, this
+      );
+
+
       let parent = human.meshes[0].parent as BABYLON.AbstractMesh
       parent.physicsImpostor = new BABYLON.PhysicsImpostor(
-        parent, BABYLON.PhysicsImpostor.BoxImpostor, {
-          mass: 10, friction: 0, restitution: 0.0,
+        parent, BABYLON.PhysicsImpostor.CylinderImpostor, {
+          mass: 1000, friction: 0, restitution: 0.0,
         }, this
       );
       parent.position.set(3, 3, 3);
 
-      let mesh = human.meshes[0];
-      mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-        mesh, BABYLON.PhysicsImpostor.BoxImpostor, {
-          mass: 10, friction: 0, restitution: 0.0,
-        }, this
-      );
+      parent.parent = Common.createBox(this, {
+        name: "human root",
+        height: 2,
+        width: 2,
+        depth: 2,
+        physics: {
+          mass: 60
+        }
+      });
+
+      (parent.parent as BABYLON.Mesh).position.set(3, 3, 3);
 
       this.setUpCamera(human);
     });
