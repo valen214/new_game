@@ -61,9 +61,11 @@ class Game
   }
   async initScenes(){
     let scene1 = new SimpleFightScene(this.engine);
+    let scene2  = new TestScene(this.engine);
     await scene1.init();
+    await scene2.init();
 
-    this.activeScene = scene1;
+    this.activeScene = scene2;
   }
 
   async start(){

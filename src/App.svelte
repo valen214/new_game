@@ -60,7 +60,7 @@
     <canvas id="renderCanvas"
         bind:this={canvas}
         touch-action="none"></canvas>
-    <GUI show={$show} game={game}/>
+    <GUI game={game}/>
 	{:else}
 		<button on:click={() => started.update(true)}>Start</button>
 		<h1>Hello {name}!</h1>

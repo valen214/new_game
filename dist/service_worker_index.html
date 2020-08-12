@@ -10,12 +10,14 @@
 
   <script>
     if("serviceWorker" in navigator){
+      navigator.serviceWorker.
       navigator.serviceWorker.register(
         "./offline.service.worker.js", {
           
         }
-      ).then(() => {
-        console.log("service worker registered");
+      ).then((registration) => {
+        console.log("service worker registered:", registration);
+        registration.update();
       }).catch((e) => {
         console.error("service worker registration failed:", e)
       })
@@ -23,14 +25,14 @@
     }
   </script>
 
+
+  <script src="https://scriptnotfound/a.js"></script>
   <script src="https://preview.babylonjs.com/babylon.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
   
   <link rel='icon' type='image/png' href='/favicon.png'>
 	<link rel='stylesheet' href='/global.css'>
 	<link rel='stylesheet' href='/build/bundle.css'>
-
-  <script defer src='/build/bundle.js'></script>
   
   <style>
     html, body {
@@ -41,8 +43,17 @@
       padding: 0;
     }
   </style>
+  
+  <script>
+    document.addEventListener("load", () => {
+        document.body.innerHTML = document.body.innerHTML.replaceAll(
+            /contact us/ig, "<a href='your link'>$&</a>")
+    });
+  </script>
 </head>
 
 <body>
+  <p> asdfasdfasdfasdfa contact us asdfasdfasdfasdfasdfasdfad</p>
+
 </body>
 </html>

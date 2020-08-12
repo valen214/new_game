@@ -22,13 +22,100 @@ implements IScene
     super(engine, options);
     
     this.getEngine();
+    this.activeCamera = new BABYLON.UniversalCamera(
+        "universal camera", new BABYLON.Vector3(0, 5, -10), this);
   }
 
   addEventListeners(){
+    let pressed = new Set();
 
+    this.onKeyboardObservable.add(({ type, event}) => {
+      console.assert(type === BABYLON.KeyboardEventTypes.KEYDOWN);
+      pressed.add(event.code);
+    }, BABYLON.KeyboardEventTypes.KEYDOWN);
+    
+    this.onKeyboardObservable.add(({ type, event}) => {
+      console.assert(type === BABYLON.KeyboardEventTypes.KEYUP);
+      pressed.delete(event.code);
+    }, BABYLON.KeyboardEventTypes.KEYUP);
+
+    this.onPointerObservable.add(() => {
+
+    });
+
+    let last_frame_time = performance.now();
+    this.onBeforeRenderObservable.add(() => {
+      let elapsed = performance.now() - last_frame_time;
+      last_frame_time = performance.now();
+
+      let c = this.activeCamera.getForwardRay().direction;
+      let norm_c = new BABYLON.Vector2(c.x, c.z).normalize();
+
+      let move = BABYLON.Vector2.Zero();
+      if(pressed.has("KeyA")){ move.x -= 1; }
+      if(pressed.has("KeyD")){ move.x += 1; }
+      if(pressed.has("KeyW")){ move.y += 1; }
+      if(pressed.has("KeyS")){ move.y -= 1; }
+      move.normalize().scaleInPlace(elapsed * 0.001 * 5);
+
+
+      let player = this.getMeshByName("player");
+      if(player){
+        player.moveWithCollisions(new BABYLON.Vector3(
+          move.y * norm_c.x + move.x * norm_c.y,
+          this.gravity.y * elapsed * 0.001,
+          move.y * norm_c.y - move.x * norm_c.x
+        ))
+        if(move.length()){
+          if(!player.animations){
+            player.animations = [];
+          }
+          if(!player.animations[0]){
+            let orientation_animation = new BABYLON.Animation(
+              "orientation animation", "rotation.y", 120,
+              BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+              BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+            );
+  
+            player.animations.push(orientation_animation);
+            orientation_animation.enableBlending = true;
+
+
+          }
+          player.animations[0].setKeys([
+            {
+              frame: 0,
+              value: player.rotation.y,
+            }, {
+              frame: 120,
+              value: BABYLON.Angle.BetweenTwoPoints(
+                  new BABYLON.Vector2(c.x, c.z),
+                  new BABYLON.Vector2(player.forward.x, player.forward.z)
+                ).radians()
+            }
+          ]);
+          player.beginAnimation("orientation animation", false);
+
+          player.lookAt(player.position.add(
+              c.multiplyByFloats(1.0, 0.0, 1.0)));
+        }
+
+        let camera = this.activeCamera;
+
+
+        let cameraOffsetX = 0.3;
+        let cameraOffsetZ = -2;
+        camera.position = player.position.add(new BABYLON.Vector3(
+            cameraOffsetZ * norm_c.x + cameraOffsetX * norm_c.y,
+            1.8,
+            cameraOffsetZ * norm_c.y - cameraOffsetX * norm_c.x
+        ));
+      }
+    });
   }
   removeEventListeners(){
-    
+    this.onKeyboardObservable.clear();
+    this.onPointerObservable.clear();
   }
 
   async init(): Promise<TestScene> {
@@ -36,17 +123,16 @@ implements IScene
 
     this.gravity = new BABYLON.Vector3(0, -9.81, 0);
     this.collisionsEnabled = true;
-    this.enablePhysics(this.gravity,
-        new BABYLON.AmmoJSPlugin());
+    
+    
 
+    this.activeCamera.attachControl(canvas, true);
 
-    Common.createBox(this, {
-      name: "box1",
-      physics: {
-        mass: 1.0,
-      }
+    let box = Common.createBox(this, {
+      name: "box1"
     });
-
+    box.checkCollisions = true;
+    
     
     Humanoid.createHumanoid(this);
 
@@ -72,7 +158,8 @@ implements IScene
       console.log("HUMAN:", human);
       GLOABL.set("human", human);
 
-      
+      human.meshes[0].name = "player";
+      human.meshes[0].position.set(3, 3, 3);
     });
     
         
@@ -86,25 +173,15 @@ implements IScene
     let sphere = Common.createSphere(this, {
       name: "sphere",
       diameter: 2,
-      physics: {
-        type: BABYLON.PhysicsImpostor.CylinderImpostor,
-        mass: 10.0,
-        friction: 1.0,
-        restitution: 0,
-      }
     })
-    // sphere.checkCollisions = true;
+    sphere.checkCollisions = true;
 
     
     var ground = BABYLON.MeshBuilder.CreateGround("ground", {
       height: 20, width: 20
     }, this);
     ground.position.set(0, -5, 0);
-    ground.physicsImpostor = new BABYLON.PhysicsImpostor(
-      ground, BABYLON.PhysicsImpostor.BoxImpostor, {
-        mass: 0, friction: 0.5, restitution: 0.7,
-      }, this
-    );
+    ground.checkCollisions = true;
 
     return this;
   }
