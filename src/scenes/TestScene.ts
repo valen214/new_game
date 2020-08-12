@@ -27,6 +27,7 @@ implements IScene
   }
 
   addEventListeners(){
+
     let pressed = new Set();
 
     this.onKeyboardObservable.add(({ type, event}) => {
@@ -67,37 +68,37 @@ implements IScene
           move.y * norm_c.y - move.x * norm_c.x
         ))
         if(move.length()){
-          if(!player.animations){
-            player.animations = [];
-          }
+          
+
           if(!player.animations[0]){
             let orientation_animation = new BABYLON.Animation(
-              "orientation animation", "rotation.y", 120,
-              BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+              "orientationAnimation", "rotation.y", 10,
+              BABYLON.Animation.ANIMATIONTYPE_FLOAT,
               BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
             );
-  
-            player.animations.push(orientation_animation);
             orientation_animation.enableBlending = true;
+  
+            orientation_animation.setKeys([
+              {
+                frame: 0,
+                value: player.rotation.y,
+              }, {
+                frame: 10,
+                value: Math.atan2(norm_c.x, norm_c.y)
+              }
+            ]);
 
-
+            this.beginDirectAnimation(player, [
+              orientation_animation
+            ], 0, 10, true);
+            player.animations.push(orientation_animation);
+            player.animations[0].getKeys()[1].value = Math.atan2(norm_c.x, norm_c.y);
           }
-          player.animations[0].setKeys([
-            {
-              frame: 0,
-              value: player.rotation.y,
-            }, {
-              frame: 120,
-              value: BABYLON.Angle.BetweenTwoPoints(
-                  new BABYLON.Vector2(c.x, c.z),
-                  new BABYLON.Vector2(player.forward.x, player.forward.z)
-                ).radians()
-            }
-          ]);
-          player.beginAnimation("orientation animation", false);
 
+          /*
           player.lookAt(player.position.add(
               c.multiplyByFloats(1.0, 0.0, 1.0)));
+          */
         }
 
         let camera = this.activeCamera;
@@ -160,6 +161,34 @@ implements IScene
 
       human.meshes[0].name = "player";
       human.meshes[0].position.set(3, 3, 3);
+
+
+      let player = this.getMeshByName("player");
+      /*
+      if(!player.animations){
+        player.animations = [];
+      }
+      if(!player.animations[0]){
+        let orientation_animation = new BABYLON.Animation(
+          "orientationAnimation", "rotation.y", 60,
+          BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+          BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+
+        player.animations.push(orientation_animation);
+        orientation_animation.enableBlending = true;
+
+      }
+      player.animations[0].setKeys([
+        {
+          frame: 0,
+          value: player.rotation.y,
+        }, {
+          frame: 60,
+          value: player.rotation.y + 3.14
+        }
+      ]);
+      */
     });
     
         

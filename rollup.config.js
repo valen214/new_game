@@ -90,8 +90,10 @@ export default {
 		!production && serve({
       contentBase: [
           "dist",
+          /*
           "node_modules/babylonjs",
           "node_modules/babylonjs-gui",
+          */
       ],
       port: 5000,
       headers: {
