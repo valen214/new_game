@@ -71,8 +71,16 @@ implements IScene
         if(move.length()){
           let target_angle = Math.atan2(norm_c.x, norm_c.y); // orientation problem
           let delta = target_angle - player.rotation.y;
-          if(Math.abs(delta) > 0.05){
-            player.rotation.y += delta * elapsed_sec * 25;
+
+          if(delta < - Math.PI){
+            delta += Math.PI * 2;
+          } else if(delta > Math.PI){
+            delta = Math.PI * 2 - delta;
+          }
+
+          if(Math.abs(delta) > 0.5){
+            player.rotation.y = (player.rotation.y + Math.PI * 2 +
+                delta * elapsed_sec * 25) % (Math.PI * 2);
           } else{
             player.rotation.y = target_angle;
           }
