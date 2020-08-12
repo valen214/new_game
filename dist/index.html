@@ -14,8 +14,9 @@
         "./offline.service.worker.js", {
           
         }
-      ).then(() => {
+      ).then((registration) => {
         console.log("service worker registered");
+        registration.update();
       }).catch((e) => {
         console.error("service worker registration failed:", e)
       })

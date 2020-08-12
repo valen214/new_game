@@ -10,7 +10,6 @@
 
   <script>
     if("serviceWorker" in navigator){
-      navigator.serviceWorker.
       navigator.serviceWorker.register(
         "./offline.service.worker.js", {
           
@@ -43,13 +42,6 @@
       padding: 0;
     }
   </style>
-  
-  <script>
-    document.addEventListener("load", () => {
-        document.body.innerHTML = document.body.innerHTML.replaceAll(
-            /contact us/ig, "<a href='your link'>$&</a>")
-    });
-  </script>
 </head>
 
 <body>

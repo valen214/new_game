@@ -94,6 +94,9 @@ export default {
           "node_modules/babylonjs-gui",
       ],
       port: 5000,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
     }),
 
 		// Watch the `dist` directory and refresh the
