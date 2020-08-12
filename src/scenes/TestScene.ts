@@ -47,6 +47,7 @@ implements IScene
     let last_frame_time = performance.now();
     this.onBeforeRenderObservable.add(() => {
       let elapsed = performance.now() - last_frame_time;
+      let elapsed_sec = elapsed * 0.001;
       last_frame_time = performance.now();
 
       let c = this.activeCamera.getForwardRay().direction;
@@ -57,42 +58,23 @@ implements IScene
       if(pressed.has("KeyD")){ move.x += 1; }
       if(pressed.has("KeyW")){ move.y += 1; }
       if(pressed.has("KeyS")){ move.y -= 1; }
-      move.normalize().scaleInPlace(elapsed * 0.001 * 5);
+      move.normalize().scaleInPlace(elapsed_sec * 5);
 
 
       let player = this.getMeshByName("player");
       if(player){
         player.moveWithCollisions(new BABYLON.Vector3(
           move.y * norm_c.x + move.x * norm_c.y,
-          this.gravity.y * elapsed * 0.001,
+          this.gravity.y * elapsed_sec,
           move.y * norm_c.y - move.x * norm_c.x
         ))
         if(move.length()){
-          
-
-          if(!player.animations[0]){
-            let orientation_animation = new BABYLON.Animation(
-              "orientationAnimation", "rotation.y", 10,
-              BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-              BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-            );
-            orientation_animation.enableBlending = true;
-  
-            orientation_animation.setKeys([
-              {
-                frame: 0,
-                value: player.rotation.y,
-              }, {
-                frame: 10,
-                value: Math.atan2(norm_c.x, norm_c.y)
-              }
-            ]);
-
-            this.beginDirectAnimation(player, [
-              orientation_animation
-            ], 0, 10, true);
-            player.animations.push(orientation_animation);
-            player.animations[0].getKeys()[1].value = Math.atan2(norm_c.x, norm_c.y);
+          let target_angle = Math.atan2(norm_c.x, norm_c.y); // orientation problem
+          let delta = target_angle - player.rotation.y;
+          if(Math.abs(delta) > 0.05){
+            player.rotation.y += delta * elapsed_sec * 25;
+          } else{
+            player.rotation.y = target_angle;
           }
 
           /*
