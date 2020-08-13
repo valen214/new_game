@@ -1,3 +1,4 @@
+import type { IEntity } from "./IEntity";
 
 
 enum STATE {
@@ -14,7 +15,7 @@ https://www.babylonjs-playground.com/#BCU1XR
 
 
 */
-class Human
+class Human implements IEntity
 {
 
   public meshes: BABYLON.AbstractMesh[];
@@ -87,6 +88,35 @@ class Human
     }
   }
 
+  begin(action: string){
+    switch(action){
+    case "walk":
+      this.beginWalk();
+      break;
+    case "idle":
+      this.beginIdle();
+      break;
+    default:
+      console.log("Human.ts: begin(): unknown action:", action);
+    }
+  }
+  move(vec: BABYLON.Vector3){
+    this.meshes[0].moveWithCollisions(vec);
+  }
+  
+  get position(){
+    return this.meshes[0].position;
+  }
+  set position(value: BABYLON.Vector3){
+    this.meshes[0].position = value;
+  }
+  get rotation(){
+    return this.meshes[0].rotation;
+  }
+  set rotation(value: BABYLON.Vector3){
+    this.meshes[0].rotation = value;
+  }
+
 
 
   addShadow(shadowGen: BABYLON.ShadowGenerator): Human {
@@ -108,6 +138,7 @@ class Human
         Human.meshes = meshes;
         Human.skeletons = skeletons;
       });
+      Human.imported = true;
     }
     return new Human(scene);
   }
