@@ -9,14 +9,15 @@
 	<title>Svelte app</title>
 
   <script>
-    if("serviceWorker" in navigator){
+    let register = false;
+    if(register && ( "serviceWorker" in navigator )){
       navigator.serviceWorker.register(
         "./offline.service.worker.js", {
           
         }
       ).then((registration) => {
         console.log("service worker registered");
-        registration.update();
+        // registration.update();
       }).catch((e) => {
         console.error("service worker registration failed:", e)
       })

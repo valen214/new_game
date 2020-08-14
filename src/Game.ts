@@ -4,6 +4,10 @@ import GLOBAL from "./Global";
 import { TestScene } from "./scenes/TestScene";
 import { SimpleFightScene } from "./scenes/SimpleFightScene";
 import type { IScene } from "./scenes/IScene";
+import { SpriteScene } from "./scenes/SpriteScene";
+import { ParticleScene } from "./scenes/ParticleScene";
+import { SkyboxScene } from "./scenes/SkyboxScene";
+import { TerrainScene } from "./scenes/TerrainScene";
 
 declare type _Scene = BABYLON.Scene & IScene;
 
@@ -63,9 +67,13 @@ class Game
     let scene1 = new SimpleFightScene(this.engine);
     let scene2  = new TestScene(this.engine);
     // await scene1.init();
-    await scene2.init();
+    // await scene2.init();
 
-    this.activeScene = scene2;
+    // this.activeScene = scene2;
+    let scene = new TerrainScene(this.engine);
+    
+    await scene.init();
+    this.activeScene = scene;
   }
 
   async start(){

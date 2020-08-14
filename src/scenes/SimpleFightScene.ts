@@ -38,11 +38,8 @@ implements IScene
   ){
     super(engine, options);
 
-    console.log("post super");
-
     this.canvas = this.getEngine().getRenderingCanvas();
 
-    
     this.thirdPersonCamera = new ThirdPersonCamera(
       "3rd person camera", 0, 1.1123, 5, null, this);
   }

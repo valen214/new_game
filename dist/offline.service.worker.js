@@ -72,9 +72,13 @@ self.addEventListener("fetch", async e => {
           break;
         }
       }
+
+      if(!res.ok){
+        return Response.error();
+      }
       caches.open(CACHE_VERSION).then(cache => {
         cache.put(e.request, res.clone());
-      })
+      });
       return res;
     } catch(e){
       console.error(e);
