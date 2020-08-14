@@ -4,6 +4,7 @@ import Human from "../entities/Human";
 import Humanoid from "../entities/Humanoid";
 import GLOABL from "../Global";
 import { Player } from "../entities/Player";
+import { once } from "../util";
 
 /*
 https://stackblitz.com/edit/typescript-18twnn-immature-import?file=rollup.config.js
@@ -112,15 +113,27 @@ implements IScene
       diameter: 2,
     })
     sphere.checkCollisions = true;
-    let done = true;
-    setTimeout(() => { done = false; }, 3000);
+    sphere.material = new BABYLON.StandardMaterial("a material", this);
+
+
+
+
     this.onBeforeRenderObservable.add((a, b) => {
-      if(!done){
-        done = true;
-        console.log(b);
-      }
+      setTimeout(() => {
+        once("asdf", () => {
+          console.log(a, b);
+        })
+      }, 3000)
       sphere.moveWithCollisions(this.gravity);
       box.moveWithCollisions(this.gravity);
+
+
+      (sphere.material as BABYLON.StandardMaterial).emissiveColor = (
+        sphere.intersectsMesh(this.player.playerEntity.rootMesh, false) ?
+        new BABYLON.Color3(1, 0, 0) :
+        new BABYLON.Color3(0.5, 0.5, 0.5)
+      );
+
     })
 
     

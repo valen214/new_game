@@ -22,10 +22,38 @@ export function waitFor(
   });
 }
 
-export default {
-  waitFor,
-};
 
+// https://docs.npmjs.com/creating-and-publishing-scoped-public-packages
+const once_set = new Set<string>();
+export function once(id: string,
+    fn: (...args: any[]) => void, ...args: any[]){
+  if(!once_set.has(id)){
+    once_set.add(id);
+    fn(...args);
+  }
+}
+
+
+/* usage:
+https://jsfiddle.net/2fvds5tg/
+
+
+document.body.addEventListener("pointermove", e => {
+  throttle("asdfasdfasf", 500, () => {
+    console.log(e.x);
+  });
+});
+
+*/
+const throttle_map = new Map<string, number>();
+export function throttle(id: string, interval: number,
+    fn: (...args: any[]) => void, ...args: any[]){
+  let last = throttle_map.get(id);
+  if(!last || ( performance.now() - last > interval )){
+    fn(...args);
+    throttle_map.set(id, performance.now());
+  }
+}
 
 /*
 

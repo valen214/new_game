@@ -52,6 +52,10 @@ class Human implements IEntity
     window["c"] = this;
   }
 
+  get rootMesh(){
+    return this.meshes[0];
+  }
+
   beginIdle(){
     if(this.idleRange && this.state !== STATE.IDLE){
       this.state = STATE.IDLE;
